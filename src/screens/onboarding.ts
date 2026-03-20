@@ -276,8 +276,8 @@ async function testZai() {
   try {
     const client = new ZaiClient(zaiFields[0]!.value, zaiFields[1]!.value);
     const reply = await client.chatCompletion(
-      [{ role: "user", content: "Say 'connected' in one word." }],
-      { maxTokens: 10 }
+      [{ role: "user", content: "Hello! Respond with a short greeting to confirm this connection works." }],
+      { maxTokens: 50 }
     );
     testStatus = "success";
     testMessage = `Model: ${zaiFields[1]!.value} — response: "${reply.slice(0, 40)}"`;
