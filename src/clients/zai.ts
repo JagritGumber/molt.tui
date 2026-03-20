@@ -1,40 +1,16 @@
 // Z.ai API client - OpenAI-compatible chat completions
-// Endpoint: https://api.z.ai/api/paas/v4/chat/completions
-// Retry + empty response handling inspired by NullClaw's model multiplexer
+// Uses streaming (SSE) and aggregates deltas — matching Perspectiveful's approach
+// Z.ai doesn't reliably support stream:false, so we always stream
 
 const ZAI_BASE = "https://api.z.ai/api/paas/v4";
 const MAX_RETRIES = 3;
-const RETRY_DELAYS = [500, 1500, 3000]; // progressive backoff (ms)
+const RETRY_DELAYS = [500, 1500, 3000];
 
 export interface ZaiMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
-export interface ZaiCompletionRequest {
-  model: string;
-  messages: ZaiMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  stream?: boolean;
-}
-
-export interface ZaiCompletionResponse {
-  id: string;
-  choices: {
-    index: number;
-    message: { role: string; content: string };
-    finish_reason: string;
-  }[];
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
-
-// Errors that are worth retrying (transient)
 function isRetryable(status: number): boolean {
   return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
 }
@@ -43,46 +19,66 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Extract content from response, handling various empty/malformed shapes
-function extractContent(data: any): string | null {
-  // Standard path
-  const content = data?.choices?.[0]?.message?.content;
-  if (content && typeof content === "string" && content.trim().length > 0) {
-    return content.trim();
+// Parse SSE stream and aggregate text deltas into a single string
+async function readSSEStream(body: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let aggregated = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffered += decoder.decode(value, { stream: true });
+
+      let splitIndex = buffered.indexOf("\n\n");
+      while (splitIndex !== -1) {
+        const rawEvent = buffered.slice(0, splitIndex);
+        buffered = buffered.slice(splitIndex + 2);
+
+        const dataLines = rawEvent
+          .split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trim());
+
+        for (const data of dataLines) {
+          if (!data || data === "[DONE]") continue;
+          try {
+            const json = JSON.parse(data) as {
+              choices?: Array<{ delta?: { content?: string } }>;
+            };
+            const text = json.choices?.[0]?.delta?.content;
+            if (text) aggregated += text;
+          } catch {
+            // Skip non-JSON frames
+          }
+        }
+
+        splitIndex = buffered.indexOf("\n\n");
+      }
+    }
+  } finally {
+    reader.releaseLock();
   }
 
-  // Some models put content in delta instead of message
-  const delta = data?.choices?.[0]?.delta?.content;
-  if (delta && typeof delta === "string" && delta.trim().length > 0) {
-    return delta.trim();
-  }
-
-  // Check if choices exist but are empty array
-  if (Array.isArray(data?.choices) && data.choices.length === 0) {
-    return null;
-  }
-
-  // Check for content being null/undefined/empty string explicitly
-  if (content === "" || content === null || content === undefined) {
-    return null;
-  }
-
-  return null;
+  return aggregated;
 }
 
 export class ZaiClient {
   constructor(
     private apiKey: string,
-    private model: string = "GLM-4.7-FlashX"
+    private model: string = "glm-4.7-flash"
   ) {}
 
   async chatCompletion(messages: ZaiMessage[], opts?: { temperature?: number; maxTokens?: number }): Promise<string> {
-    const body: ZaiCompletionRequest = {
+    const body = {
       model: this.model,
       messages,
       temperature: opts?.temperature ?? 1,
       max_tokens: opts?.maxTokens ?? 2048,
-      stream: false,
+      stream: true,
     };
 
     let lastError: Error | null = null;
@@ -98,13 +94,11 @@ export class ZaiClient {
           body: JSON.stringify(body),
         });
 
-        // Non-retryable HTTP error — fail immediately
         if (!res.ok && !isRetryable(res.status)) {
           const errText = await res.text();
           throw new Error(`Z.ai ${res.status}: ${errText.slice(0, 200)}`);
         }
 
-        // Retryable HTTP error — wait and retry
         if (!res.ok && isRetryable(res.status)) {
           lastError = new Error(`Z.ai ${res.status} (attempt ${attempt + 1}/${MAX_RETRIES})`);
           if (attempt < MAX_RETRIES - 1) {
@@ -114,24 +108,29 @@ export class ZaiClient {
           throw lastError;
         }
 
-        const data = await res.json();
-        const content = extractContent(data);
-
-        // Empty response — retry with slightly higher temperature
-        if (!content) {
-          lastError = new Error("Z.ai returned empty response");
+        if (!res.body) {
+          lastError = new Error("Z.ai returned no response body");
           if (attempt < MAX_RETRIES - 1) {
-            body.temperature = Math.min(1.0, (body.temperature ?? 0.8) + 0.1);
             await delay(RETRY_DELAYS[attempt] ?? 1000);
             continue;
           }
           throw lastError;
         }
 
-        return content;
+        const content = await readSSEStream(res.body);
+
+        if (!content.trim()) {
+          lastError = new Error("Z.ai returned empty response");
+          if (attempt < MAX_RETRIES - 1) {
+            await delay(RETRY_DELAYS[attempt] ?? 1000);
+            continue;
+          }
+          throw lastError;
+        }
+
+        return content.trim();
       } catch (err: any) {
         lastError = err;
-        // Network errors (fetch failed) — retry
         if (err.name === "TypeError" || err.message?.includes("fetch")) {
           if (attempt < MAX_RETRIES - 1) {
             await delay(RETRY_DELAYS[attempt] ?? 1000);

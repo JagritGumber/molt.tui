@@ -33,7 +33,7 @@ export function loadConfig(): Config {
   if (!existsSync(CONFIG_FILE)) {
     const defaults: Config = {
       zaiApiKey: "",
-      zaiModel: "GLM-4.7-FlashX",
+      zaiModel: "glm-4.7-flash",
       moltbookApiKey: "",
       moltbookAgentId: "",
       dataDir: CONFIG_DIR,

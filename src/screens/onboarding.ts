@@ -17,7 +17,7 @@ let config: Config = loadConfig();
 // ── Z.ai fields ──
 let zaiFields = [
   { key: "apiKey", label: "API Key", value: "", secret: true },
-  { key: "model", label: "Model", value: "GLM-4.7-FlashX", secret: false },
+  { key: "model", label: "Model", value: "glm-4.7-flash", secret: false },
 ];
 let zaiFocus = 0;
 
