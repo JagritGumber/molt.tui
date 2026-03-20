@@ -17,6 +17,7 @@ export interface ZaiCompletionRequest {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
+  stream?: boolean;
 }
 
 export interface ZaiCompletionResponse {
@@ -79,8 +80,9 @@ export class ZaiClient {
     const body: ZaiCompletionRequest = {
       model: this.model,
       messages,
-      temperature: opts?.temperature ?? 0.8,
+      temperature: opts?.temperature ?? 1,
       max_tokens: opts?.maxTokens ?? 2048,
+      stream: false,
     };
 
     let lastError: Error | null = null;
