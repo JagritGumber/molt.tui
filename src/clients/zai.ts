@@ -73,7 +73,7 @@ function extractContent(data: any): string | null {
 export class ZaiClient {
   constructor(
     private apiKey: string,
-    private model: string = "glm-4.7-flashx"
+    private model: string = "GLM-4.7-FlashX"
   ) {}
 
   async chatCompletion(messages: ZaiMessage[], opts?: { temperature?: number; maxTokens?: number }): Promise<string> {
