@@ -3,6 +3,7 @@
 import { cursor, screen, write, getTermSize, fg, style } from "./ansi.ts";
 import { startInput, stopInput, type KeyEvent } from "./input.ts";
 import { drawHeader, drawStatusBar } from "./components.ts";
+import { isCheatsheetVisible, toggleCheatsheet, drawCheatsheet } from "./cheatsheet.ts";
 
 export interface Screen {
   name: string;
@@ -75,8 +76,10 @@ class App {
     const s = this.screens.get(this.activeScreen);
     if (s) {
       s.render();
+      drawCheatsheet(this.activeScreen);
       const hint = s.statusHint || "↑↓ navigate • enter select • q quit";
-      const status = this.statusMessage || hint;
+      const csHint = isCheatsheetVisible() ? "" : " • ? cheatsheet";
+      const status = this.statusMessage || (hint + csHint);
       drawStatusBar(status, `screen: ${s.name}`);
     }
   }
@@ -93,6 +96,20 @@ class App {
       // Global: Ctrl+C to quit
       if (key.ctrl && key.name === "c") {
         this.shutdown();
+        return;
+      }
+      // Global: ? to toggle cheatsheet
+      if (key.name === "?" && !key.ctrl) {
+        toggleCheatsheet();
+        this.requestRender();
+        return;
+      }
+      // Swallow all keys when cheatsheet is open (except ? and Esc)
+      if (isCheatsheetVisible()) {
+        if (key.name === "escape") {
+          toggleCheatsheet();
+          this.requestRender();
+        }
         return;
       }
       const s = this.screens.get(this.activeScreen);
