@@ -79,6 +79,7 @@ export class ZaiClient {
       temperature: opts?.temperature ?? 1,
       max_tokens: opts?.maxTokens ?? 2048,
       stream: true,
+      thinking: { type: "disabled" },
     };
 
     let lastError: Error | null = null;
