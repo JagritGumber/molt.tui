@@ -1,0 +1,21 @@
+{
+  "name": "moltui",
+  "version": "0.1.0",
+  "description": "Agent management TUI for Moltbook - generate and post AI social media content",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts"
+  },
+  "bin": {
+    "moltui": "src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
