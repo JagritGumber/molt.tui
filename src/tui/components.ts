@@ -53,7 +53,7 @@ export function drawList(
     const label = isSelected
       ? `${fg.brightWhite}${style.bold}${item.label}${style.reset}`
       : `${fg.white}${item.label}${style.reset}`;
-    const desc = item.description ? `  ${fg.gray}${item.description}${style.reset}` : "";
+    const desc = item.description ? ` ${fg.gray}— ${item.description}${style.reset}` : "";
 
     write(fitWidth(prefix + label + desc, width));
   }
