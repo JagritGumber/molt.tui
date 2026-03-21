@@ -80,11 +80,24 @@ export function drawTextInput(
   focused: boolean,
   cursorPos?: number
 ) {
-  cursor.to(row, col);
-  const labelStr = `${fg.gray}${label}: ${style.reset}`;
-  write(labelStr);
+  // Hard-cap width to terminal to prevent any wrapping
+  const { cols } = getTermSize();
+  const maxWidth = Math.max(1, cols - col);
+  const safeWidth = Math.min(width, maxWidth);
 
-  const inputWidth = Math.max(1, width - visibleLength(labelStr));
+  cursor.to(row, col);
+  const labelText = `${label}: `;
+  const labelLen = labelText.length;
+
+  // If label alone exceeds width, just show truncated label
+  if (labelLen >= safeWidth) {
+    write(`${fg.gray}${labelText.slice(0, safeWidth)}${style.reset}\x1b[K`);
+    return;
+  }
+
+  write(`${fg.gray}${labelText}${style.reset}`);
+
+  const inputWidth = safeWidth - labelLen;
   // Flatten newlines and strip control chars for display
   const flat = stripAnsi(value).replace(/[\n\r\t]/g, " ").replace(/\s+/g, " ");
 
@@ -97,10 +110,15 @@ export function drawTextInput(
     displayVal = flat.length > inputWidth - 1 ? flat.slice(0, inputWidth - 2) + "…" : flat;
   }
 
+  // Pad or truncate to exact inputWidth, then clear rest of line
+  const padded = displayVal.length >= inputWidth
+    ? displayVal.slice(0, inputWidth)
+    : displayVal + " ".repeat(inputWidth - displayVal.length);
+
   if (focused) {
-    write(`${style.underline}${fg.brightWhite}${fitWidth(displayVal, inputWidth)}${style.reset}\x1b[K`);
+    write(`${style.underline}${fg.brightWhite}${padded}${style.reset}\x1b[K`);
   } else {
-    write(`${fg.white}${fitWidth(displayVal || fg.gray + "(empty)", inputWidth)}${style.reset}\x1b[K`);
+    write(`${fg.white}${padded || fg.gray + "(empty)"}${style.reset}\x1b[K`);
   }
 }
 
