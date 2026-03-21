@@ -35,6 +35,7 @@ function reset() {
 
 export const postScreen: Screen = {
   name: "post",
+  handlesTextInput: true,
   statusHint: "",
 
   onEnter() {
