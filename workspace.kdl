@@ -1,0 +1,29 @@
+layout {
+
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+
+    // Top Row
+    pane split_direction="vertical" {
+        // Molt.tui runs here
+        pane command="bun" {
+            args "run" "start"
+            cwd "/mnt/d/moltui"
+        }
+        pane
+        pane
+    }
+
+    // Bottom Row
+    pane split_direction="vertical" {
+        pane
+        pane
+        pane
+    }
+
+    pane size=1 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+
+}
