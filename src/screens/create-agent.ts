@@ -91,6 +91,8 @@ export const createAgentScreen: Screen = {
     } else if (key.name === "escape") {
       app.back();
     } else if (!key.ctrl && key.name.length === 1) {
+      // Prevent name from getting absurdly long
+      if (field.key === "name" && field.value.length >= 50) return;
       field.value += key.name;
       app.requestRender();
     }
