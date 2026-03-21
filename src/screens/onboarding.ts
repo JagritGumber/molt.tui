@@ -6,10 +6,10 @@ import { drawTextInput, drawHR, drawBox, getSpinnerFrame } from "../tui/componen
 import { loadConfig, saveConfig, type Config } from "../utils/config.ts";
 import { createAgent } from "../agents/personality.ts";
 import { ZaiClient } from "../clients/zai.ts";
-import { MoltbookClient } from "../clients/moltbook.ts";
+import { registerOnMoltbook, MoltbookClient } from "../clients/moltbook.ts";
 import type { KeyEvent } from "../tui/input.ts";
 
-type Step = "welcome" | "zai" | "zai-test" | "moltbook" | "moltbook-test" | "agent" | "persona" | "done";
+type Step = "welcome" | "zai" | "zai-test" | "moltbook" | "moltbook-test" | "persona" | "done";
 
 let currentStep: Step = "welcome";
 let config: Config = loadConfig();
@@ -22,14 +22,14 @@ let zaiFields = [
 let zaiFocus = 0;
 
 // ── Moltbook fields ──
-let moltbookFields = [
-  { key: "apiKey", label: "API Key", value: "", secret: true },
+let moltChoice: "register" | "existing" = "register";
+let moltRegFields = [
+  { key: "name", label: "Username", value: "" },
+  { key: "bio", label: "Bio (optional)", value: "" },
 ];
-let moltFocus = 0;
-
-// ── Agent setup ──
-let agentChoice: "register" | "existing" = "register";
-let existingAgentId = "";
+let moltExistingKey = "";
+let moltRegFocus = 0;
+let moltClaimUrl = "";
 
 // ── Persona fields ──
 let personaFields = [
@@ -46,16 +46,17 @@ let personaFocus = 0;
 // ── Connection test state ──
 let testStatus: "idle" | "testing" | "success" | "error" = "idle";
 let testMessage = "";
+let testMessageLine2 = "";
 
 function displaySecret(val: string): string {
   if (!val) return "";
-  return val.slice(0, 4) + "•".repeat(Math.max(0, val.length - 4));
+  return val.slice(0, 8) + "•".repeat(Math.max(0, val.length - 8));
 }
 
 function drawStepIndicator(row: number, col: number) {
-  const steps = ["Welcome", "Z.ai", "Moltbook", "Agent", "Persona", "Done"];
+  const steps = ["Welcome", "Z.ai", "Moltbook", "Persona", "Done"];
   const stepMap: Record<Step, number> = {
-    welcome: 0, zai: 1, "zai-test": 1, moltbook: 2, "moltbook-test": 2, agent: 3, persona: 4, done: 5,
+    welcome: 0, zai: 1, "zai-test": 1, moltbook: 2, "moltbook-test": 2, persona: 3, done: 4,
   };
   const activeIdx = stepMap[currentStep];
   const parts = steps.map((s, i) => {
@@ -67,12 +68,9 @@ function drawStepIndicator(row: number, col: number) {
   write(parts.join(`${fg.gray} → ${style.reset}`));
 }
 
-// ── Render functions per step ──
+// ── Render functions ──
 
 function renderWelcome() {
-  const { cols } = getTermSize();
-  const w = Math.min(60, cols - 6);
-
   cursor.to(5, 3);
   write(`${fg.brightCyan}${style.bold}  ╔╦╗╔═╗╦  ╔╦╗ ╔╦╗╦ ╦╦${style.reset}`);
   cursor.to(6, 3);
@@ -90,7 +88,7 @@ function renderWelcome() {
   cursor.to(13, 7);
   write(`${fg.yellow}1.${style.reset} ${fg.white}A Z.ai API key${style.reset} ${fg.gray}(for AI post generation)${style.reset}`);
   cursor.to(14, 7);
-  write(`${fg.yellow}2.${style.reset} ${fg.white}A Moltbook API key${style.reset} ${fg.gray}(for posting to the network)${style.reset}`);
+  write(`${fg.yellow}2.${style.reset} ${fg.white}A Moltbook account${style.reset} ${fg.gray}(register or use existing key)${style.reset}`);
   cursor.to(15, 7);
   write(`${fg.yellow}3.${style.reset} ${fg.white}Your agent persona${style.reset} ${fg.gray}(personality, tone, topics)${style.reset}`);
 
@@ -122,7 +120,6 @@ function renderZai() {
 
 function renderZaiTest() {
   const { cols } = getTermSize();
-
   cursor.to(5, 3);
   write(`${fg.brightCyan}${style.bold}Step 1: Z.ai Connection${style.reset}`);
   drawHR(6, 3, Math.min(65, cols - 6));
@@ -155,72 +152,63 @@ function renderMoltbook() {
 
   cursor.to(7, 3);
   write(`${fg.white}Moltbook is the social network where your agent posts.${style.reset}`);
-  cursor.to(8, 3);
-  write(`${fg.gray}Get your API key from www.moltbook.com (developer settings).${style.reset}`);
 
-  drawTextInput(10, 3, w, moltFocus === 0 ? moltbookFields[0]!.value : displaySecret(moltbookFields[0]!.value), moltbookFields[0]!.label, moltFocus === 0);
+  // Choice tabs
+  cursor.to(9, 5);
+  const regActive = moltChoice === "register";
+  write(
+    (regActive ? `${fg.brightCyan}${style.bold}[Register New]${style.reset}` : `${fg.gray}[Register New]${style.reset}`) +
+    "  " +
+    (!regActive ? `${fg.brightCyan}${style.bold}[Existing Key]${style.reset}` : `${fg.gray}[Existing Key]${style.reset}`) +
+    `${fg.gray}  ← Tab to switch${style.reset}`
+  );
 
-  cursor.to(13, 3);
-  write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to test connection • ${fg.brightCyan}Esc${fg.gray} to go back${style.reset}`);
+  if (moltChoice === "register") {
+    cursor.to(11, 5);
+    write(`${fg.gray}Pick a unique lowercase username for your agent.${style.reset}`);
+    drawTextInput(13, 3, w, moltRegFields[0]!.value, moltRegFields[0]!.label, moltRegFocus === 0);
+    drawTextInput(15, 3, w, moltRegFields[1]!.value, moltRegFields[1]!.label, moltRegFocus === 1);
+    cursor.to(18, 3);
+    write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to register • ${fg.brightCyan}Esc${fg.gray} to go back${style.reset}`);
+  } else {
+    cursor.to(11, 5);
+    write(`${fg.gray}Paste your existing Moltbook API key (starts with moltbook_).${style.reset}`);
+    drawTextInput(13, 3, w, displaySecret(moltExistingKey), "API Key", true);
+    cursor.to(16, 3);
+    write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to verify • ${fg.brightCyan}Esc${fg.gray} to go back${style.reset}`);
+  }
 }
 
 function renderMoltbookTest() {
   const { cols } = getTermSize();
-
   cursor.to(5, 3);
   write(`${fg.brightCyan}${style.bold}Step 2: Moltbook Connection${style.reset}`);
   drawHR(6, 3, Math.min(65, cols - 6));
 
   cursor.to(8, 5);
   if (testStatus === "testing") {
-    write(`${getSpinnerFrame()} ${fg.white}Verifying Moltbook identity...${style.reset}`);
+    write(`${getSpinnerFrame()} ${fg.white}${moltChoice === "register" ? "Registering on Moltbook..." : "Verifying Moltbook key..."}${style.reset}`);
   } else if (testStatus === "success") {
-    write(`${fg.brightGreen}✓ ${fg.white}Connected to Moltbook!${style.reset}`);
-    cursor.to(9, 5);
-    write(`${fg.gray}${testMessage}${style.reset}`);
-    cursor.to(11, 5);
+    write(`${fg.brightGreen}✓ ${fg.white}${testMessage}${style.reset}`);
+    if (testMessageLine2) {
+      cursor.to(9, 5);
+      write(`${fg.gray}${testMessageLine2}${style.reset}`);
+    }
+    if (moltClaimUrl) {
+      cursor.to(10, 5);
+      write(`${fg.yellow}Claim URL: ${fg.white}${moltClaimUrl}${style.reset}`);
+      cursor.to(11, 5);
+      write(`${fg.gray}Send this to your human to verify ownership!${style.reset}`);
+      cursor.to(13, 5);
+    } else {
+      cursor.to(11, 5);
+    }
     write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to continue${style.reset}`);
   } else if (testStatus === "error") {
-    write(`${fg.brightRed}✗ ${fg.white}Connection failed${style.reset}`);
-    cursor.to(9, 5);
-    write(`${fg.red}${testMessage}${style.reset}`);
-    cursor.to(11, 5);
+    write(`${fg.brightRed}✗ ${fg.white}${testMessage}${style.reset}`);
+    cursor.to(10, 5);
     write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to retry • ${fg.brightCyan}s${fg.gray} to skip${style.reset}`);
   }
-}
-
-function renderAgent() {
-  const { cols } = getTermSize();
-  const w = Math.min(65, cols - 6);
-
-  cursor.to(5, 3);
-  write(`${fg.brightCyan}${style.bold}Step 3: Agent Identity${style.reset}`);
-  drawHR(6, 3, w);
-
-  cursor.to(7, 3);
-  write(`${fg.white}How do you want to set up your Moltbook agent?${style.reset}`);
-
-  const options = [
-    { label: "Register a new agent", desc: "create a fresh agent on Moltbook" },
-    { label: "Use existing agent ID", desc: "enter an agent ID you already have" },
-  ];
-
-  options.forEach((opt, i) => {
-    cursor.to(9 + i * 2, 5);
-    const selected = (i === 0 && agentChoice === "register") || (i === 1 && agentChoice === "existing");
-    if (selected) {
-      write(`${fg.brightCyan}${style.bold} ❯ ${fg.brightWhite}${opt.label}${style.reset}  ${fg.gray}${opt.desc}${style.reset}`);
-    } else {
-      write(`${fg.white}   ${opt.label}${style.reset}  ${fg.gray}${opt.desc}${style.reset}`);
-    }
-  });
-
-  if (agentChoice === "existing") {
-    drawTextInput(14, 3, w, existingAgentId, "Agent ID", true);
-  }
-
-  cursor.to(17, 3);
-  write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to continue • ${fg.brightCyan}Esc${fg.gray} to go back${style.reset}`);
 }
 
 function renderPersona() {
@@ -228,7 +216,7 @@ function renderPersona() {
   const w = Math.min(65, cols - 6);
 
   cursor.to(5, 3);
-  write(`${fg.brightCyan}${style.bold}Step 4: Agent Persona${style.reset}`);
+  write(`${fg.brightCyan}${style.bold}Step 3: Agent Persona${style.reset}`);
   drawHR(6, 3, w);
 
   cursor.to(7, 3);
@@ -258,15 +246,19 @@ function renderDone() {
   const mOk = config.moltbookApiKey ? `${fg.brightGreen}✓` : `${fg.brightRed}✗`;
   write(`${mOk} ${fg.white}Moltbook${style.reset}`);
 
-  cursor.to(11, 5);
-  const aOk = config.moltbookAgentId ? `${fg.brightGreen}✓` : `${fg.brightRed}✗`;
-  write(`${aOk} ${fg.white}Agent: ${fg.gray}${config.moltbookAgentId || "not set"}${style.reset}`);
-
-  cursor.to(13, 5);
+  if (moltClaimUrl) {
+    cursor.to(12, 5);
+    write(`${fg.yellow}⚠ Don't forget: send the claim URL to your human!${style.reset}`);
+    cursor.to(13, 5);
+    write(`${fg.gray}${moltClaimUrl}${style.reset}`);
+    cursor.to(15, 5);
+  } else {
+    cursor.to(12, 5);
+  }
   write(`${fg.gray}Press ${fg.brightCyan}Enter${fg.gray} to go to the dashboard${style.reset}`);
 }
 
-// ── Connection test helpers ──
+// ── Connection helpers ──
 
 async function testZai() {
   testStatus = "testing";
@@ -280,7 +272,7 @@ async function testZai() {
       { maxTokens: 50 }
     );
     testStatus = "success";
-    testMessage = `Model: ${zaiFields[1]!.value} — response: "${reply.slice(0, 40)}"`;
+    testMessage = `Model: ${zaiFields[1]!.value} — "${reply.slice(0, 40)}"`;
 
     config.zaiApiKey = zaiFields[0]!.value;
     config.zaiModel = zaiFields[1]!.value;
@@ -292,103 +284,143 @@ async function testZai() {
   app.requestRender();
 }
 
-async function testMoltbook() {
+async function doMoltbookRegister() {
   testStatus = "testing";
   testMessage = "";
+  testMessageLine2 = "";
+  moltClaimUrl = "";
   app.requestRender();
 
   try {
-    const client = new MoltbookClient(moltbookFields[0]!.value);
-    const result = await client.verifyIdentity();
-    testStatus = "success";
-    testMessage = `Verified! Agent ID: ${result.agentId}`;
+    const name = moltRegFields[0]!.value.trim().toLowerCase();
+    const bio = moltRegFields[1]!.value.trim();
+    const result = await registerOnMoltbook(name, bio || undefined);
 
-    config.moltbookApiKey = moltbookFields[0]!.value;
-    if (result.agentId) config.moltbookAgentId = result.agentId;
+    const apiKey = result.agent.api_key;
+    const claimUrl = result.agent.claim_url;
+
+    if (!apiKey) throw new Error("No API key returned — check username");
+
+    config.moltbookApiKey = apiKey;
+    config.moltbookAgentId = name;
     saveConfig(config);
+
+    testStatus = "success";
+    testMessage = `Registered as "${name}" on Moltbook!`;
+    testMessageLine2 = `API key: ${apiKey.slice(0, 12)}... (saved)`;
+    moltClaimUrl = claimUrl || "";
   } catch (err: any) {
     testStatus = "error";
-    testMessage = err.message?.slice(0, 80) || "Unknown error";
+    testMessage = err.message?.slice(0, 120) || "Registration failed";
   }
   app.requestRender();
 }
 
-// ── Key handlers per step ──
+async function doMoltbookVerify() {
+  testStatus = "testing";
+  testMessage = "";
+  testMessageLine2 = "";
+  moltClaimUrl = "";
+  app.requestRender();
+
+  try {
+    const client = new MoltbookClient(moltExistingKey);
+    const result = await client.getStatus();
+
+    config.moltbookApiKey = moltExistingKey;
+    saveConfig(config);
+
+    // Try to get agent name
+    try {
+      const me = await client.getMe();
+      config.moltbookAgentId = me.agent?.name || "";
+      saveConfig(config);
+    } catch {}
+
+    testStatus = "success";
+    testMessage = `Connected! Status: ${result.status}`;
+  } catch (err: any) {
+    testStatus = "error";
+    testMessage = err.message?.slice(0, 80) || "Verification failed";
+  }
+  app.requestRender();
+}
+
+// ── Key handlers ──
 
 function handleWelcomeKey(key: KeyEvent) {
-  if (key.name === "return") {
-    currentStep = "zai";
-    app.requestRender();
-  } else if (key.name === "escape") {
-    app.navigate("dashboard");
-  }
+  if (key.name === "return") { currentStep = "zai"; app.requestRender(); }
+  else if (key.name === "escape") { app.navigate("dashboard"); }
 }
 
 function handleZaiKey(key: KeyEvent) {
   const field = zaiFields[zaiFocus]!;
   if (key.name === "tab" && !key.shift || key.name === "down") {
-    zaiFocus = Math.min(zaiFields.length - 1, zaiFocus + 1);
-    app.requestRender();
+    zaiFocus = Math.min(zaiFields.length - 1, zaiFocus + 1); app.requestRender();
   } else if (key.name === "tab" && key.shift || key.name === "up") {
-    zaiFocus = Math.max(0, zaiFocus - 1);
-    app.requestRender();
+    zaiFocus = Math.max(0, zaiFocus - 1); app.requestRender();
   } else if (key.name === "backspace") {
-    field.value = field.value.slice(0, -1);
-    app.requestRender();
+    field.value = field.value.slice(0, -1); app.requestRender();
   } else if (key.name === "return") {
-    if (!zaiFields[0]!.value.trim()) {
-      app.flash("API key is required!");
-      return;
-    }
-    currentStep = "zai-test";
-    testStatus = "idle";
-    app.requestRender();
-    testZai();
+    if (!zaiFields[0]!.value.trim()) { app.flash("API key is required!"); return; }
+    currentStep = "zai-test"; testStatus = "idle"; app.requestRender(); testZai();
   } else if (key.name === "escape") {
-    currentStep = "welcome";
-    app.requestRender();
+    currentStep = "welcome"; app.requestRender();
   } else if (!key.ctrl && key.name.length === 1) {
-    field.value += key.name;
-    app.requestRender();
+    field.value += key.name; app.requestRender();
   }
 }
 
 function handleZaiTestKey(key: KeyEvent) {
   if (testStatus === "testing") return;
   if (key.name === "return") {
-    if (testStatus === "success") {
-      currentStep = "moltbook";
-      testStatus = "idle";
-    } else {
-      currentStep = "zai";
-    }
+    if (testStatus === "success") { currentStep = "moltbook"; testStatus = "idle"; }
+    else { currentStep = "zai"; }
     app.requestRender();
   } else if (key.name === "s") {
-    currentStep = "moltbook";
-    testStatus = "idle";
-    app.requestRender();
+    currentStep = "moltbook"; testStatus = "idle"; app.requestRender();
   }
 }
 
 function handleMoltbookKey(key: KeyEvent) {
-  const field = moltbookFields[moltFocus]!;
-  if (key.name === "backspace") {
-    field.value = field.value.slice(0, -1);
+  if (key.name === "tab" && moltChoice === "register" && !key.shift) {
+    // Tab within register fields, or switch mode if at end
+    if (moltRegFocus < moltRegFields.length - 1) {
+      moltRegFocus++; app.requestRender();
+    } else {
+      moltChoice = "existing"; app.requestRender();
+    }
+  } else if (key.name === "tab" && moltChoice === "existing") {
+    moltChoice = "register"; moltRegFocus = 0; app.requestRender();
+  } else if (key.name === "tab" && key.shift && moltChoice === "register") {
+    if (moltRegFocus > 0) { moltRegFocus--; app.requestRender(); }
+  } else if (key.name === "up" && moltChoice === "register") {
+    moltRegFocus = Math.max(0, moltRegFocus - 1); app.requestRender();
+  } else if (key.name === "down" && moltChoice === "register") {
+    moltRegFocus = Math.min(moltRegFields.length - 1, moltRegFocus + 1); app.requestRender();
+  } else if (key.name === "backspace") {
+    if (moltChoice === "register") {
+      moltRegFields[moltRegFocus]!.value = moltRegFields[moltRegFocus]!.value.slice(0, -1);
+    } else {
+      moltExistingKey = moltExistingKey.slice(0, -1);
+    }
     app.requestRender();
   } else if (key.name === "return") {
-    if (!moltbookFields[0]!.value.trim()) {
-      app.flash("API key is required!");
-      return;
+    if (moltChoice === "register") {
+      if (!moltRegFields[0]!.value.trim()) { app.flash("Username is required!"); return; }
+      currentStep = "moltbook-test"; testStatus = "idle"; app.requestRender(); doMoltbookRegister();
+    } else {
+      if (!moltExistingKey.trim()) { app.flash("API key is required!"); return; }
+      currentStep = "moltbook-test"; testStatus = "idle"; app.requestRender(); doMoltbookVerify();
     }
-    currentStep = "moltbook-test";
-    testStatus = "idle";
-    app.requestRender();
-    testMoltbook();
   } else if (key.name === "escape") {
-    currentStep = "zai";
-    app.requestRender();
+    currentStep = "zai"; app.requestRender();
   } else if (!key.ctrl && key.name.length === 1) {
-    field.value += key.name;
+    if (moltChoice === "register") {
+      moltRegFields[moltRegFocus]!.value += key.name;
+    } else {
+      moltExistingKey += key.name;
+    }
     app.requestRender();
   }
 }
@@ -396,60 +428,22 @@ function handleMoltbookKey(key: KeyEvent) {
 function handleMoltbookTestKey(key: KeyEvent) {
   if (testStatus === "testing") return;
   if (key.name === "return") {
-    if (testStatus === "success") {
-      currentStep = "agent";
-      testStatus = "idle";
-    } else {
-      currentStep = "moltbook";
-    }
+    if (testStatus === "success") { currentStep = "persona"; testStatus = "idle"; }
+    else { currentStep = "moltbook"; }
     app.requestRender();
   } else if (key.name === "s") {
-    currentStep = "agent";
-    testStatus = "idle";
-    app.requestRender();
-  }
-}
-
-function handleAgentKey(key: KeyEvent) {
-  if (key.name === "up" || key.name === "down" || key.name === "k" || key.name === "j") {
-    agentChoice = agentChoice === "register" ? "existing" : "register";
-    app.requestRender();
-  } else if (key.name === "return") {
-    if (agentChoice === "existing" && !existingAgentId.trim()) {
-      app.flash("Enter an agent ID!");
-      return;
-    }
-    if (agentChoice === "existing") {
-      config.moltbookAgentId = existingAgentId.trim();
-      saveConfig(config);
-    }
-    currentStep = "persona";
-    app.requestRender();
-  } else if (key.name === "escape") {
-    currentStep = "moltbook";
-    app.requestRender();
-  } else if (agentChoice === "existing") {
-    if (key.name === "backspace") {
-      existingAgentId = existingAgentId.slice(0, -1);
-      app.requestRender();
-    } else if (!key.ctrl && key.name.length === 1) {
-      existingAgentId += key.name;
-      app.requestRender();
-    }
+    currentStep = "persona"; testStatus = "idle"; app.requestRender();
   }
 }
 
 function handlePersonaKey(key: KeyEvent) {
   const field = personaFields[personaFocus]!;
   if (key.name === "tab" && !key.shift || key.name === "down") {
-    personaFocus = Math.min(personaFields.length - 1, personaFocus + 1);
-    app.requestRender();
+    personaFocus = Math.min(personaFields.length - 1, personaFocus + 1); app.requestRender();
   } else if (key.name === "tab" && key.shift || key.name === "up") {
-    personaFocus = Math.max(0, personaFocus - 1);
-    app.requestRender();
+    personaFocus = Math.max(0, personaFocus - 1); app.requestRender();
   } else if (key.name === "backspace") {
-    field.value = field.value.slice(0, -1);
-    app.requestRender();
+    field.value = field.value.slice(0, -1); app.requestRender();
   } else if (key.name === "return") {
     const name = personaFields.find((f) => f.key === "name")!.value.trim();
     const tone = personaFields.find((f) => f.key === "tone")!.value.trim();
@@ -462,43 +456,22 @@ function handlePersonaKey(key: KeyEvent) {
     const constraints = personaFields.find((f) => f.key === "constraints")!.value.trim();
     const submolts = personaFields.find((f) => f.key === "submolts")!.value.split(",").map((s) => s.trim()).filter(Boolean);
 
-    const agent = createAgent({
+    createAgent({
       name, tone, topics, style: styleTxt || "default", bio, constraints, submolts,
       moltbookAgentId: config.moltbookAgentId || "",
     });
 
-    if (agentChoice === "register" && config.moltbookApiKey) {
-      registerNewAgent(agent.name, bio).catch(() => {});
-    }
-
     currentStep = "done";
     app.requestRender();
   } else if (key.name === "escape") {
-    currentStep = "agent";
-    app.requestRender();
+    currentStep = "moltbook"; app.requestRender();
   } else if (!key.ctrl && key.name.length === 1) {
-    field.value += key.name;
-    app.requestRender();
-  }
-}
-
-async function registerNewAgent(name: string, description: string) {
-  try {
-    const client = new MoltbookClient(config.moltbookApiKey);
-    const result = await client.registerAgent(name, description || name);
-    config.moltbookAgentId = result.id;
-    saveConfig(config);
-    app.flash(`Agent registered on Moltbook! ID: ${result.id}`);
-    app.requestRender();
-  } catch (err: any) {
-    app.flash(`Registration failed: ${err.message?.slice(0, 50)}`);
+    field.value += key.name; app.requestRender();
   }
 }
 
 function handleDoneKey(key: KeyEvent) {
-  if (key.name === "return" || key.name === "escape") {
-    app.navigate("dashboard");
-  }
+  if (key.name === "return" || key.name === "escape") { app.navigate("dashboard"); }
 }
 
 // ── Check if onboarding is needed ──
@@ -519,25 +492,24 @@ export const onboardingScreen: Screen = {
     config = loadConfig();
     testStatus = "idle";
     testMessage = "";
+    testMessageLine2 = "";
+    moltClaimUrl = "";
     zaiFocus = 0;
-    moltFocus = 0;
+    moltRegFocus = 0;
     personaFocus = 0;
     zaiFields[0]!.value = config.zaiApiKey || "";
-    zaiFields[1]!.value = config.zaiModel || "glm-4.7";
-    moltbookFields[0]!.value = config.moltbookApiKey || "";
-    existingAgentId = config.moltbookAgentId || "";
+    zaiFields[1]!.value = config.zaiModel || "glm-4.7-flash";
+    moltExistingKey = config.moltbookApiKey || "";
   },
 
   render() {
     drawStepIndicator(3, 3);
-
     switch (currentStep) {
       case "welcome": renderWelcome(); break;
       case "zai": renderZai(); break;
       case "zai-test": renderZaiTest(); break;
       case "moltbook": renderMoltbook(); break;
       case "moltbook-test": renderMoltbookTest(); break;
-      case "agent": renderAgent(); break;
       case "persona": renderPersona(); break;
       case "done": renderDone(); break;
     }
@@ -550,7 +522,6 @@ export const onboardingScreen: Screen = {
       case "zai-test": handleZaiTestKey(key); break;
       case "moltbook": handleMoltbookKey(key); break;
       case "moltbook-test": handleMoltbookTestKey(key); break;
-      case "agent": handleAgentKey(key); break;
       case "persona": handlePersonaKey(key); break;
       case "done": handleDoneKey(key); break;
     }
