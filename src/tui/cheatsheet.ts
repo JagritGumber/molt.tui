@@ -171,9 +171,10 @@ export function drawCheatsheet(activeScreen: string) {
   // Collect sections: global + screen-specific
   const sections = [...(SECTIONS.global || []), ...(SECTIONS[activeScreen] || [])];
 
-  // Calculate layout — two columns
+  // Layout — single column on small screens, two columns on wide
   const totalWidth = Math.min(78, cols - 4);
-  const colWidth = Math.floor((totalWidth - 3) / 2); // -3 for gap
+  const singleCol = totalWidth < 50;
+  const colWidth = singleCol ? totalWidth - 4 : Math.floor((totalWidth - 3) / 2);
   const startCol = Math.floor((cols - totalWidth) / 2);
 
   // Calculate height
@@ -216,27 +217,36 @@ export function drawCheatsheet(activeScreen: string) {
   let row = startRow + 3;
   const maxRow = startRow + height - 2;
 
-  function drawColumn(secs: Section[], col: number) {
+  function drawColumn(secs: Section[], col: number, maxW: number) {
     let r = row;
+    const keyW = Math.min(16, Math.floor(maxW * 0.4));
+    const descW = maxW - keyW;
+
     for (const sec of secs) {
       if (r >= maxRow) break;
 
       cursor.to(r, col);
-      write(`${bg.rgb(15, 15, 30)}${fg.brightYellow}${style.bold}${sec.title}${style.reset}`);
+      const t = sec.title.length > maxW ? sec.title.slice(0, maxW - 1) + "…" : sec.title;
+      write(`${bg.rgb(15, 15, 30)}${fg.brightYellow}${style.bold}${t}${style.reset}`);
       r++;
 
       for (const [key, desc] of sec.keys) {
         if (r >= maxRow) break;
         cursor.to(r, col);
-        const keyStr = `${bg.rgb(15, 15, 30)}${fg.brightCyan}${style.bold}${key.padEnd(16)}${style.reset}`;
-        const descStr = `${bg.rgb(15, 15, 30)}${fg.white}${desc}${style.reset}`;
-        write(`${keyStr}${descStr}`);
+        const k = key.length > keyW ? key.slice(0, keyW - 1) + "…" : key.padEnd(keyW);
+        const d = desc.length > descW ? desc.slice(0, descW - 1) + "…" : desc;
+        write(`${bg.rgb(15, 15, 30)}${fg.brightCyan}${style.bold}${k}${style.reset}${bg.rgb(15, 15, 30)}${fg.white}${d}${style.reset}`);
         r++;
       }
-      r++; // gap between sections
+      r++;
     }
   }
 
-  drawColumn(leftSections, startCol + 2);
-  drawColumn(rightSections, startCol + 2 + colWidth + 3);
+  if (singleCol) {
+    // Stack all sections in one column
+    drawColumn(sections, startCol + 2, colWidth);
+  } else {
+    drawColumn(leftSections, startCol + 2, colWidth);
+    drawColumn(rightSections, startCol + 2 + colWidth + 3, colWidth);
+  }
 }
