@@ -1,7 +1,7 @@
 // Agents screen - list, create, edit, delete agent personalities
 
 import { app, type Screen } from "../tui/app.ts";
-import { cursor, fg, style, write, getTermSize } from "../tui/ansi.ts";
+import { cursor, fg, style, write, getTermSize, fitWidth } from "../tui/ansi.ts";
 import { drawList, drawBox, drawTextInput, drawHR, badge, type ListItem } from "../tui/components.ts";
 import { listAgents, createAgent, deleteAgent, type AgentPersonality } from "../agents/personality.ts";
 import type { KeyEvent } from "../tui/input.ts";
@@ -54,18 +54,20 @@ export const agentsScreen: Screen = {
       const agent = agents[selectedIndex]!;
       const detailRow = 6;
       const detailCol = Math.min(70, cols - 35);
-      if (detailCol > 40) {
-        drawBox(detailRow - 1, detailCol, Math.min(35, cols - detailCol - 1), 12, agent.name);
+      const boxW = Math.min(35, cols - detailCol - 1);
+      if (detailCol > 40 && boxW > 10) {
+        drawBox(detailRow - 1, detailCol, boxW, 12, agent.name);
         const dc = detailCol + 2;
-        cursor.to(detailRow + 1, dc); write(`${fg.gray}Tone:${style.reset} ${agent.tone}`);
-        cursor.to(detailRow + 2, dc); write(`${fg.gray}Style:${style.reset} ${agent.style}`);
-        cursor.to(detailRow + 3, dc); write(`${fg.gray}Topics:${style.reset}`);
+        const tw = boxW - 4; // text width inside box
+        cursor.to(detailRow + 1, dc); write(fitWidth(`${fg.gray}Tone:${style.reset} ${agent.tone}`, tw));
+        cursor.to(detailRow + 2, dc); write(fitWidth(`${fg.gray}Style:${style.reset} ${agent.style}`, tw));
+        cursor.to(detailRow + 3, dc); write(fitWidth(`${fg.gray}Topics:${style.reset}`, tw));
         agent.topics.slice(0, 4).forEach((t, i) => {
           cursor.to(detailRow + 4 + i, dc + 1);
-          write(`${fg.cyan}• ${fg.white}${t}${style.reset}`);
+          write(fitWidth(`${fg.cyan}• ${fg.white}${t}${style.reset}`, tw - 1));
         });
-        cursor.to(detailRow + 8, dc); write(`${fg.gray}Submolts:${style.reset} ${agent.submolts.join(", ") || "none"}`);
-        cursor.to(detailRow + 9, dc); write(`${fg.gray}Molt ID:${style.reset} ${agent.moltbookAgentId || "unregistered"}`);
+        cursor.to(detailRow + 8, dc); write(fitWidth(`${fg.gray}Submolts:${style.reset} ${agent.submolts.join(", ") || "none"}`, tw));
+        cursor.to(detailRow + 9, dc); write(fitWidth(`${fg.gray}Molt ID:${style.reset} ${agent.moltbookAgentId || "unregistered"}`, tw));
       }
     }
   },
