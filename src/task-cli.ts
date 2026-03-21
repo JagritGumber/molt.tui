@@ -98,7 +98,11 @@ else if (cmd === "done" || cmd === "wip" || cmd === "todo") {
 }
 
 else if (cmd === "list") {
-  const statusFilter = getFlag("status") as TaskStatus | undefined;
+  const statusRaw = getFlag("status");
+  if (statusRaw && !["todo", "in-progress", "done"].includes(statusRaw)) {
+    console.error(`Invalid status: ${statusRaw}. Use: todo, in-progress, done`); process.exit(1);
+  }
+  const statusFilter = statusRaw as TaskStatus | undefined;
   const asJson = hasFlag("json");
   let tasks = sortTasks(listTasks());
   if (statusFilter) tasks = tasks.filter((t) => t.status === statusFilter);
