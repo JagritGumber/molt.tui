@@ -12,8 +12,12 @@ export const cursor = {
 };
 
 export const screen = {
-  clear: () => write(`${ESC}2J${ESC}H`),
+  clear: () => {
+    // Clear entire screen + move home + clear scrollback
+    write(`${ESC}2J${ESC}H${ESC}3J`);
+  },
   clearLine: () => write(`${ESC}2K`),
+  clearToEOL: () => write(`${ESC}K`),
   altBuffer: () => write(`${ESC}?1049h`),
   mainBuffer: () => write(`${ESC}?1049l`),
 };

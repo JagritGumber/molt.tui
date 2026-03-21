@@ -1,6 +1,6 @@
 // Core TUI application - screen management, navigation, render loop
 
-import { cursor, screen, write, getTermSize, fg, style } from "./ansi.ts";
+import { cursor, screen, write, getTermSize, fg, style, ESC } from "./ansi.ts";
 import { startInput, stopInput, type KeyEvent } from "./input.ts";
 import { drawHeader, drawStatusBar } from "./components.ts";
 import { isCheatsheetVisible, toggleCheatsheet, drawCheatsheet } from "./cheatsheet.ts";
@@ -70,7 +70,15 @@ class App {
     this.needsRender = false;
 
     cursor.hide();
-    screen.clear();
+    // Full clear: home + erase screen + erase every line individually
+    // The per-line erase kills wrapped text that \x1b[2J misses in tmux
+    const { rows: totalRows } = getTermSize();
+    write(`${ESC}H${ESC}2J`);
+    for (let r = 1; r <= totalRows; r++) {
+      cursor.to(r, 1);
+      write(`${ESC}2K`); // erase entire line
+    }
+    cursor.to(1, 1);
     drawHeader();
 
     const s = this.screens.get(this.activeScreen);

@@ -59,15 +59,16 @@ export const agentsScreen: Screen = {
         drawBox(detailRow - 1, detailCol, boxW, 12, agent.name);
         const dc = detailCol + 2;
         const tw = boxW - 4; // text width inside box
-        cursor.to(detailRow + 1, dc); write(fitWidth(`${fg.gray}Tone:${style.reset} ${agent.tone}`, tw));
-        cursor.to(detailRow + 2, dc); write(fitWidth(`${fg.gray}Style:${style.reset} ${agent.style}`, tw));
-        cursor.to(detailRow + 3, dc); write(fitWidth(`${fg.gray}Topics:${style.reset}`, tw));
+        const clip = (s: string) => s.length > tw ? s.slice(0, tw - 1) + "…" : s.padEnd(tw);
+        cursor.to(detailRow + 1, dc); write(`${fg.gray}Tone: ${fg.white}${clip(agent.tone)}${style.reset}`);
+        cursor.to(detailRow + 2, dc); write(`${fg.gray}Style: ${fg.white}${clip(agent.style)}${style.reset}`);
+        cursor.to(detailRow + 3, dc); write(`${fg.gray}Topics:${" ".repeat(Math.max(0, tw - 7))}${style.reset}`);
         agent.topics.slice(0, 4).forEach((t, i) => {
           cursor.to(detailRow + 4 + i, dc + 1);
-          write(fitWidth(`${fg.cyan}• ${fg.white}${t}${style.reset}`, tw - 1));
+          write(`${fg.cyan}• ${fg.white}${clip(t)}${style.reset}`);
         });
-        cursor.to(detailRow + 8, dc); write(fitWidth(`${fg.gray}Submolts:${style.reset} ${agent.submolts.join(", ") || "none"}`, tw));
-        cursor.to(detailRow + 9, dc); write(fitWidth(`${fg.gray}Molt ID:${style.reset} ${agent.moltbookAgentId || "unregistered"}`, tw));
+        cursor.to(detailRow + 8, dc); write(`${fg.gray}Submolts: ${fg.white}${clip(agent.submolts.join(", ") || "none")}${style.reset}`);
+        cursor.to(detailRow + 9, dc); write(`${fg.gray}Molt ID: ${fg.white}${clip(agent.moltbookAgentId || "unregistered")}${style.reset}`);
       }
     }
   },
