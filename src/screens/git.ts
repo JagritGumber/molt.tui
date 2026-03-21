@@ -12,9 +12,11 @@ type View = "log" | "status" | "branches" | "prs" | "diff";
 let view: View = "log";
 let cwd = process.cwd();
 let scrollOffset = 0;
+let selectedIndex = 0;
 
 // Cached data
 let logLines: string[] = [];
+let logCommitIndices: number[] = []; // maps selectable index → logLines index
 let statusLines: string[] = [];
 let branchLines: string[] = [];
 let prLines: string[] = [];
@@ -22,8 +24,11 @@ let diffLines: string[] = [];
 let currentBranch = "";
 let repoName = "";
 
-// All commands are hardcoded strings — no user input is interpolated
-// execSync is safe here as this is a local TUI, not a web server
+// Commit data for actions
+interface CommitInfo { hash: string; refs: string; subject: string }
+let commits: CommitInfo[] = [];
+
+// All commands are hardcoded — no user input interpolated, safe for local TUI
 function run(cmd: string): string {
   try {
     return execSync(cmd, { cwd, encoding: "utf-8", timeout: 10000 }).trim();
@@ -50,56 +55,38 @@ function refresh() {
   else if (view === "prs") loadPRs();
 }
 
-// Branch colors — cycle through these for different branches
+// ── Branch colors ──
 const BRANCH_COLORS = [
   fg.brightCyan, fg.brightMagenta, fg.brightGreen, fg.brightYellow,
   fg.brightBlue, fg.brightRed, fg.cyan, fg.magenta,
 ];
 
-interface CommitNode {
-  hash: string;
-  refs: string;
-  subject: string;
-  parents: string[];
-  date: string;
-  author: string;
-}
-
 function loadLog() {
-  // Get structured commit data
-  const raw = run("git log --all --format='%h|%p|%D|%s|%cr|%an' -50");
-  if (!raw) { logLines = ["(no commits)"]; return; }
+  const raw = run("git log --all --format='%h|%p|%D|%s|%cr|%an' -60");
+  if (!raw) { logLines = ["(no commits)"]; logCommitIndices = []; commits = []; return; }
 
-  const commits: CommitNode[] = raw.split("\n").map((line) => {
+  const parsed = raw.split("\n").map((line) => {
     const [hash, parents, refs, subject, date, author] = line.split("|");
     return {
-      hash: hash || "",
-      parents: (parents || "").split(" ").filter(Boolean),
-      refs: refs || "",
-      subject: subject || "",
-      date: date || "",
-      author: author || "",
+      hash: hash || "", parents: (parents || "").split(" ").filter(Boolean),
+      refs: refs || "", subject: subject || "", date: date || "", author: author || "",
     };
   });
 
-  // Build connected graph with merge/fork lines
-  // Each commit produces a commit row + a connector row
-  const lanes: string[] = []; // lane[col] = hash expected next
-  const laneColors: string[] = []; // color per lane
+  commits = parsed.map((c) => ({ hash: c.hash, refs: c.refs, subject: c.subject }));
+
+  // Build connected graph
+  const lanes: string[] = [];
+  const laneColors: string[] = [];
   let colorIdx = 0;
-
-  function nextColor(): string {
-    return BRANCH_COLORS[colorIdx++ % BRANCH_COLORS.length]!;
-  }
-
-  function getLaneColor(col: number): string {
-    return laneColors[col] || fg.gray;
-  }
+  const nextColor = () => BRANCH_COLORS[colorIdx++ % BRANCH_COLORS.length]!;
+  const getLaneColor = (col: number) => laneColors[col] || fg.gray;
 
   logLines = [];
+  logCommitIndices = [];
+  let commitIdx = 0;
 
-  for (const commit of commits) {
-    // Find which lane this commit sits in
+  for (const commit of parsed) {
     let col = lanes.indexOf(commit.hash);
     if (col === -1) {
       col = lanes.indexOf("");
@@ -111,82 +98,41 @@ function loadLog() {
     const myColor = getLaneColor(col);
     const numLanes = lanes.length;
 
-    // ── Commit row: show ● at col, │ at other active lanes ──
+    // Commit row
     let commitRow = "";
     for (let i = 0; i < numLanes; i++) {
-      if (i === col) {
-        commitRow += `${myColor}●${style.reset}`;
-      } else if (lanes[i]) {
-        commitRow += `${getLaneColor(i)}│${style.reset}`;
-      } else {
-        commitRow += " ";
-      }
+      if (i === col) commitRow += `${myColor}●${style.reset}`;
+      else if (lanes[i]) commitRow += `${getLaneColor(i)}│${style.reset}`;
+      else commitRow += " ";
       commitRow += " ";
     }
 
-    // Text
     const hashStr = `${fg.yellow}${commit.hash}${style.reset}`;
     const refStr = commit.refs ? ` ${fg.brightGreen}${style.bold}(${commit.refs})${style.reset}` : "";
     const subjStr = `${fg.white}${commit.subject}${style.reset}`;
     const dateStr = ` ${fg.gray}${commit.date}${style.reset}`;
+
+    logCommitIndices.push(logLines.length);
     logLines.push(`${commitRow}${hashStr}${refStr} ${subjStr}${dateStr}`);
+    commitIdx++;
 
-    // ── Figure out lane changes for connector row ──
+    // Lane updates
     const prevLanes = [...lanes];
-    const prevColors = [...laneColors];
-
-    // First parent continues in the same lane
     if (commit.parents.length === 0) {
       lanes[col] = "";
     } else {
       lanes[col] = commit.parents[0] || "";
-      // Additional parents (merge) — find or create lanes
       for (let p = 1; p < commit.parents.length; p++) {
         const ph = commit.parents[p]!;
-        if (lanes.includes(ph)) continue; // already tracked
+        if (lanes.includes(ph)) continue;
         const free = lanes.indexOf("");
-        if (free !== -1 && free !== col) {
-          lanes[free] = ph;
-          laneColors[free] = nextColor();
-        } else {
-          lanes.push(ph);
-          laneColors.push(nextColor());
-        }
+        if (free !== -1 && free !== col) { lanes[free] = ph; laneColors[free] = nextColor(); }
+        else { lanes.push(ph); laneColors.push(nextColor()); }
       }
     }
 
-    // ── Connector row: draw lines connecting old to new positions ──
-    const maxL = Math.max(prevLanes.length, lanes.length);
-    let connRow = "";
-    let hasConnectors = false;
-
-    for (let i = 0; i < maxL; i++) {
-      const wasActive = i < prevLanes.length && prevLanes[i] !== "";
-      const isActive = i < lanes.length && lanes[i] !== "";
-
-      if (i === col && commit.parents.length > 1) {
-        // Merge point
-        connRow += `${myColor}│${style.reset}`;
-        hasConnectors = true;
-      } else if (isActive && wasActive) {
-        connRow += `${getLaneColor(i)}│${style.reset}`;
-      } else if (isActive && !wasActive) {
-        // New branch spawning
-        connRow += `${getLaneColor(i)}╭${style.reset}`;
-        hasConnectors = true;
-      } else if (!isActive && wasActive) {
-        // Branch ending
-        connRow += `${prevColors[i] || fg.gray}╯${style.reset}`;
-        hasConnectors = true;
-      } else {
-        connRow += " ";
-      }
-      connRow += " ";
-    }
-
-    // Draw merge connection lines
+    // Connector row for merges
     if (commit.parents.length > 1) {
-      // Find where the merge parents are
       const mergeTargets: number[] = [];
       for (let p = 1; p < commit.parents.length; p++) {
         const ph = commit.parents[p]!;
@@ -195,40 +141,27 @@ function loadLog() {
       }
 
       if (mergeTargets.length > 0) {
-        // Rebuild connector with merge lines
-        connRow = "";
+        const maxL = Math.max(prevLanes.length, lanes.length);
         const minMerge = Math.min(col, ...mergeTargets);
         const maxMerge = Math.max(col, ...mergeTargets);
+        let connRow = "";
 
         for (let i = 0; i < maxL; i++) {
           const isActive = i < lanes.length && lanes[i] !== "";
           const isMergeEnd = mergeTargets.includes(i);
 
-          if (i === col) {
-            connRow += `${myColor}├${style.reset}`;
-          } else if (isMergeEnd) {
-            connRow += `${getLaneColor(i)}╮${style.reset}`;
-            hasConnectors = true;
-          } else if (i > minMerge && i < maxMerge && (isActive || true)) {
-            // Horizontal merge line between col and merge target
-            if (isActive && !mergeTargets.includes(i) && i !== col) {
-              connRow += `${getLaneColor(i)}┼${style.reset}`;
-            } else {
-              connRow += `${myColor}─${style.reset}`;
-            }
-          } else if (isActive) {
-            connRow += `${getLaneColor(i)}│${style.reset}`;
-          } else {
-            connRow += " ";
+          if (i === col) connRow += `${myColor}├${style.reset}`;
+          else if (isMergeEnd) connRow += `${getLaneColor(i)}╮${style.reset}`;
+          else if (i > minMerge && i < maxMerge) {
+            if (isActive && !isMergeEnd && i !== col) connRow += `${getLaneColor(i)}┼${style.reset}`;
+            else connRow += `${myColor}─${style.reset}`;
           }
+          else if (isActive) connRow += `${getLaneColor(i)}│${style.reset}`;
+          else connRow += " ";
           connRow += " ";
         }
-        hasConnectors = true;
+        logLines.push(connRow);
       }
-    }
-
-    if (hasConnectors) {
-      logLines.push(connRow);
     }
   }
 }
@@ -239,7 +172,7 @@ function loadStatus() {
 }
 
 function loadBranches() {
-  const raw = run("git branch -a --sort=-committerdate --format='%(HEAD) %(refname:short) %(committerdate:relative) %(subject)'");
+  const raw = run("git branch --sort=-committerdate --format='%(HEAD)|%(refname:short)|%(committerdate:relative)|%(subject)'");
   branchLines = raw ? raw.split("\n").slice(0, 30) : ["(no branches)"];
 }
 
@@ -248,16 +181,20 @@ function loadPRs() {
   prLines = raw ? raw.split("\n").filter(Boolean) : ["(no PRs or gh not authenticated)"];
 }
 
-function loadDiff() {
-  const raw = run("git diff --stat");
-  const full = run("git diff --no-color");
+function loadDiff(ref?: string) {
+  const target = ref || "";
+  const raw = run(`git diff ${target} --stat`);
+  const full = run(`git diff ${target} --no-color`);
   diffLines = raw ? [...raw.split("\n"), "", ...full.split("\n").slice(0, 200)] : ["(no changes)"];
 }
 
-// Log lines are pre-colored in loadLog(), just pass through
-function colorGraphLine(line: string): string {
-  return line;
+function loadCommitDiff(hash: string) {
+  const raw = run(`git show ${hash} --stat --no-color`);
+  const full = run(`git show ${hash} --no-color`);
+  diffLines = raw ? [...raw.split("\n"), "", ...full.split("\n").slice(0, 200)] : ["(no changes)"];
 }
+
+// ── Coloring ──
 
 function colorStatusLine(line: string): string {
   const code = line.slice(0, 2);
@@ -273,7 +210,8 @@ function colorDiffLine(line: string): string {
   if (line.startsWith("+") && !line.startsWith("+++")) return `${fg.brightGreen}${line}${style.reset}`;
   if (line.startsWith("-") && !line.startsWith("---")) return `${fg.brightRed}${line}${style.reset}`;
   if (line.startsWith("@@")) return `${fg.brightCyan}${line}${style.reset}`;
-  if (line.startsWith("diff ") || line.startsWith("index ")) return `${fg.brightMagenta}${style.bold}${line}${style.reset}`;
+  if (line.startsWith("diff ") || line.startsWith("index ") || line.startsWith("commit ")) return `${fg.brightMagenta}${style.bold}${line}${style.reset}`;
+  if (line.startsWith("Author:") || line.startsWith("Date:")) return `${fg.brightYellow}${line}${style.reset}`;
   return `${fg.gray}${line}${style.reset}`;
 }
 
@@ -296,51 +234,120 @@ function renderTabs(row: number) {
   }).join("") + "\x1b[K");
 }
 
+function getSelectableLines(): string[] {
+  switch (view) {
+    case "log": return logLines;
+    case "status": return statusLines;
+    case "branches": return branchLines;
+    case "prs": return prLines;
+    case "diff": return diffLines;
+    default: return [];
+  }
+}
+
+function getSelectableCount(): number {
+  switch (view) {
+    case "log": return commits.length;
+    case "branches": return branchLines.length;
+    case "prs": return prLines.length;
+    case "status": return statusLines.length;
+    default: return 0;
+  }
+}
+
 function renderContent() {
   const { rows, cols } = getTermSize();
-  const w = cols - 4;
+  const w = cols - 6;
   const maxLines = rows - 8;
-  let lines: string[];
-  let colorFn: (line: string) => string;
+  const lines = getSelectableLines();
+  const selectable = view !== "diff";
 
-  switch (view) {
-    case "log": lines = logLines; colorFn = colorGraphLine; break;
-    case "status": lines = statusLines; colorFn = colorStatusLine; break;
-    case "branches": lines = branchLines; colorFn = (l) => {
-      if (l.startsWith("*")) return `${fg.brightCyan}${style.bold}${l}${style.reset}`;
-      return `${fg.white}${l}${style.reset}`;
-    }; break;
-    case "prs": lines = prLines; colorFn = (l) => {
-      if (l.includes("OPEN")) return l.replace("OPEN", `${fg.brightGreen}OPEN${style.reset}`);
-      if (l.includes("MERGED")) return l.replace("MERGED", `${fg.brightMagenta}MERGED${style.reset}`);
-      if (l.includes("CLOSED")) return l.replace("CLOSED", `${fg.brightRed}CLOSED${style.reset}`);
-      return `${fg.white}${l}${style.reset}`;
-    }; break;
-    case "diff": lines = diffLines; colorFn = colorDiffLine; break;
-    default: lines = []; colorFn = (l) => l;
-  }
-
-  // Clamp scroll
+  // Clamp
   const maxScroll = Math.max(0, lines.length - maxLines);
   if (scrollOffset > maxScroll) scrollOffset = maxScroll;
+
+  // For log view, map selectedIndex to the actual logLines index
+  let highlightLine = -1;
+  if (view === "log" && selectedIndex < logCommitIndices.length) {
+    highlightLine = logCommitIndices[selectedIndex]!;
+    // Auto-scroll to keep selection visible
+    if (highlightLine < scrollOffset) scrollOffset = highlightLine;
+    if (highlightLine >= scrollOffset + maxLines) scrollOffset = highlightLine - maxLines + 1;
+  } else if (selectable) {
+    highlightLine = selectedIndex;
+    if (highlightLine < scrollOffset) scrollOffset = highlightLine;
+    if (highlightLine >= scrollOffset + maxLines) scrollOffset = highlightLine - maxLines + 1;
+  }
 
   for (let i = 0; i < maxLines; i++) {
     const idx = scrollOffset + i;
     cursor.to(6 + i, 3);
     if (idx >= lines.length) { write("\x1b[K"); continue; }
-    const clean = lines[idx]!.replace(/[\n\r]/g, "").slice(0, w);
-    write(`${colorFn(clean)}\x1b[K`);
+
+    const line = lines[idx]!.replace(/[\n\r]/g, "");
+    const isSelected = selectable && idx === highlightLine;
+
+    if (view === "log") {
+      // Log is pre-colored, just add selection marker
+      if (isSelected) {
+        write(`${bg.rgb(30, 30, 50)}${fg.brightCyan}❯${style.reset}${bg.rgb(30, 30, 50)}${line.slice(0, w)}${style.reset}\x1b[K`);
+      } else {
+        write(` ${line.slice(0, w)}\x1b[K`);
+      }
+    } else if (view === "status") {
+      const colored = colorStatusLine(line);
+      if (isSelected) {
+        write(`${bg.rgb(30, 30, 50)}${fg.brightCyan}❯${style.reset}${bg.rgb(30, 30, 50)}${colored}${style.reset}\x1b[K`);
+      } else {
+        write(` ${colored}\x1b[K`);
+      }
+    } else if (view === "branches") {
+      const parts = line.split("|");
+      const isCurrent = parts[0]?.trim() === "*";
+      const name = parts[1] || "";
+      const date = parts[2] || "";
+      const subj = (parts[3] || "").slice(0, 40);
+      const branchColor = isCurrent ? `${fg.brightCyan}${style.bold}` : fg.white;
+      const marker = isCurrent ? "●" : " ";
+      const formatted = `${branchColor}${marker} ${name.padEnd(25)}${style.reset} ${fg.gray}${date.padEnd(18)}${fg.white}${subj}${style.reset}`;
+      if (isSelected) {
+        write(`${bg.rgb(30, 30, 50)}${fg.brightCyan}❯${style.reset}${bg.rgb(30, 30, 50)}${formatted}${style.reset}\x1b[K`);
+      } else {
+        write(` ${formatted}\x1b[K`);
+      }
+    } else if (view === "prs") {
+      let colored = `${fg.white}${line}${style.reset}`;
+      if (line.includes("OPEN")) colored = line.replace("OPEN", `${fg.brightGreen}OPEN${style.reset}`);
+      else if (line.includes("MERGED")) colored = line.replace("MERGED", `${fg.brightMagenta}MERGED${style.reset}`);
+      else if (line.includes("CLOSED")) colored = line.replace("CLOSED", `${fg.brightRed}CLOSED${style.reset}`);
+      if (isSelected) {
+        write(`${bg.rgb(30, 30, 50)}${fg.brightCyan}❯${style.reset}${bg.rgb(30, 30, 50)}${colored}${style.reset}\x1b[K`);
+      } else {
+        write(` ${colored}\x1b[K`);
+      }
+    } else {
+      // Diff — no selection, just color
+      write(` ${colorDiffLine(line.slice(0, w))}\x1b[K`);
+    }
   }
 
   // Info bar
   cursor.to(rows - 3, 3);
-  const info = view === "status"
-    ? `${fg.gray}f${fg.white} fetch  ${fg.gray}p${fg.white} pull  ${fg.gray}P${fg.white} push  ${fg.gray}s${fg.white} stage all  ${fg.gray}r${fg.white} refresh${style.reset}`
-    : view === "branches"
-    ? `${fg.gray}enter${fg.white} checkout  ${fg.gray}r${fg.white} refresh${style.reset}`
-    : view === "prs"
-    ? `${fg.gray}enter${fg.white} checkout PR  ${fg.gray}r${fg.white} refresh${style.reset}`
-    : `${fg.gray}${scrollOffset + 1}-${Math.min(scrollOffset + maxLines, lines.length)} of ${lines.length}${style.reset}`;
+  let info = "";
+  if (view === "log") {
+    const c = commits[selectedIndex];
+    info = c
+      ? `${fg.brightCyan}enter${fg.white} view diff  ${fg.brightCyan}b${fg.white} checkout  ${fg.brightCyan}c${fg.white} cherry-pick  ${fg.gray}${c.hash}${style.reset}`
+      : "";
+  } else if (view === "status") {
+    info = `${fg.brightCyan}f${fg.white} fetch  ${fg.brightCyan}p${fg.white} pull  ${fg.brightCyan}P${fg.white} push  ${fg.brightCyan}s${fg.white} stage all  ${fg.brightCyan}a${fg.white} stage file${style.reset}`;
+  } else if (view === "branches") {
+    info = `${fg.brightCyan}enter${fg.white} checkout  ${fg.brightCyan}n${fg.white} new branch  ${fg.brightCyan}D${fg.white} delete  ${fg.brightCyan}m${fg.white} merge into current${style.reset}`;
+  } else if (view === "prs") {
+    info = `${fg.brightCyan}enter${fg.white} checkout PR  ${fg.brightCyan}r${fg.white} refresh${style.reset}`;
+  } else {
+    info = `${fg.gray}${scrollOffset + 1}-${Math.min(scrollOffset + maxLines, lines.length)} of ${lines.length}${style.reset}`;
+  }
   write(`${info}\x1b[K`);
 }
 
@@ -348,11 +355,12 @@ function renderContent() {
 
 export const gitScreen: Screen = {
   name: "git",
-  statusHint: "1-5 tabs • j/k scroll • r refresh • esc back",
+  statusHint: "1-5 tabs • j/k select • enter action • r refresh • esc back",
 
   onEnter() {
     view = "log";
     scrollOffset = 0;
+    selectedIndex = 0;
     refresh();
   },
 
@@ -368,33 +376,83 @@ export const gitScreen: Screen = {
   },
 
   onKey(key: KeyEvent) {
-    const { rows } = getTermSize();
-    const maxLines = rows - 8;
+    const maxSelectable = getSelectableCount();
 
     // Tab switching
-    if (key.name === "1") { view = "log"; scrollOffset = 0; refresh(); app.requestRender(); }
-    else if (key.name === "2") { view = "status"; scrollOffset = 0; loadStatus(); app.requestRender(); }
-    else if (key.name === "3") { view = "branches"; scrollOffset = 0; loadBranches(); app.requestRender(); }
-    else if (key.name === "4") { view = "prs"; scrollOffset = 0; loadPRs(); app.requestRender(); }
-    else if (key.name === "5") { view = "diff"; scrollOffset = 0; loadDiff(); app.requestRender(); }
+    if (key.name === "1") { view = "log"; scrollOffset = 0; selectedIndex = 0; refresh(); app.requestRender(); }
+    else if (key.name === "2") { view = "status"; scrollOffset = 0; selectedIndex = 0; loadStatus(); app.requestRender(); }
+    else if (key.name === "3") { view = "branches"; scrollOffset = 0; selectedIndex = 0; loadBranches(); app.requestRender(); }
+    else if (key.name === "4") { view = "prs"; scrollOffset = 0; selectedIndex = 0; loadPRs(); app.requestRender(); }
+    else if (key.name === "5") { view = "diff"; scrollOffset = 0; selectedIndex = 0; loadDiff(); app.requestRender(); }
     else if (key.name === "tab") {
       const order: View[] = ["log", "status", "branches", "prs", "diff"];
       view = order[(order.indexOf(view) + 1) % order.length]!;
-      scrollOffset = 0;
-      refresh();
-      app.requestRender();
+      scrollOffset = 0; selectedIndex = 0;
+      refresh(); app.requestRender();
     }
 
-    // Scroll
-    else if (key.name === "j" || key.name === "down") { scrollOffset++; app.requestRender(); }
-    else if (key.name === "k" || key.name === "up") { scrollOffset = Math.max(0, scrollOffset - 1); app.requestRender(); }
-    else if (key.name === "pagedown") { scrollOffset += maxLines; app.requestRender(); }
-    else if (key.name === "pageup") { scrollOffset = Math.max(0, scrollOffset - maxLines); app.requestRender(); }
+    // Selection movement
+    else if (key.name === "j" || key.name === "down") {
+      if (view === "diff") { scrollOffset++; }
+      else { selectedIndex = Math.min(maxSelectable - 1, selectedIndex + 1); }
+      app.requestRender();
+    }
+    else if (key.name === "k" || key.name === "up") {
+      if (view === "diff") { scrollOffset = Math.max(0, scrollOffset - 1); }
+      else { selectedIndex = Math.max(0, selectedIndex - 1); }
+      app.requestRender();
+    }
+    else if (key.name === "pagedown") {
+      const { rows } = getTermSize();
+      const jump = rows - 8;
+      if (view === "diff") scrollOffset += jump;
+      else selectedIndex = Math.min(maxSelectable - 1, selectedIndex + jump);
+      app.requestRender();
+    }
+    else if (key.name === "pageup") {
+      const { rows } = getTermSize();
+      const jump = rows - 8;
+      if (view === "diff") scrollOffset = Math.max(0, scrollOffset - jump);
+      else selectedIndex = Math.max(0, selectedIndex - jump);
+      app.requestRender();
+    }
 
     // Refresh
     else if (key.name === "r") { refresh(); app.requestRender(); app.flash("Refreshed"); }
 
-    // Status actions
+    // ── Log actions ──
+    else if (key.name === "return" && view === "log") {
+      const c = commits[selectedIndex];
+      if (c) {
+        loadCommitDiff(c.hash);
+        view = "diff"; scrollOffset = 0;
+        app.requestRender();
+      }
+    }
+    else if (key.name === "b" && view === "log") {
+      // Checkout the ref at this commit
+      const c = commits[selectedIndex];
+      if (c?.refs) {
+        const branch = c.refs.split(",")[0]!.trim().replace("HEAD -> ", "");
+        if (branch && branch !== currentBranch) {
+          const r = runAction(`git checkout ${branch}`);
+          app.flash(r.split("\n")[0] || `→ ${branch}`);
+          refresh(); app.requestRender();
+        }
+      } else {
+        app.flash("No branch ref at this commit");
+      }
+    }
+    else if (key.name === "c" && view === "log") {
+      const c = commits[selectedIndex];
+      if (c) {
+        const r = runAction(`git cherry-pick ${c.hash}`);
+        app.flash(r.split("\n")[0] || `Cherry-picked ${c.hash}`);
+        refresh(); app.requestRender();
+      }
+    }
+
+    // ── Status actions ──
     else if (key.name === "f" && view === "status") {
       app.flash("Fetching...");
       const r = runAction("git fetch --all --prune");
@@ -418,23 +476,72 @@ export const gitScreen: Screen = {
       app.flash("Staged all");
       loadStatus(); app.requestRender();
     }
-
-    // Branch checkout
-    else if (key.name === "return" && view === "branches") {
-      const line = branchLines[scrollOffset];
+    else if (key.name === "a" && view === "status") {
+      // Stage selected file
+      const line = statusLines[selectedIndex];
       if (line) {
-        const branch = line.replace(/^\*?\s*/, "").split(/\s+/)[0];
-        if (branch && !branch.startsWith("remotes/") && branch !== currentBranch) {
+        const file = line.slice(3).trim();
+        if (file) {
+          runAction(`git add "${file}"`);
+          app.flash(`Staged ${file}`);
+          loadStatus(); app.requestRender();
+        }
+      }
+    }
+    else if (key.name === "return" && view === "status") {
+      // View diff of selected file
+      const line = statusLines[selectedIndex];
+      if (line) {
+        const file = line.slice(3).trim();
+        if (file) {
+          const raw = run(`git diff "${file}" --no-color`);
+          diffLines = raw ? raw.split("\n") : ["(no changes)"];
+          view = "diff"; scrollOffset = 0;
+          app.requestRender();
+        }
+      }
+    }
+
+    // ── Branch actions ──
+    else if (key.name === "return" && view === "branches") {
+      const line = branchLines[selectedIndex];
+      if (line) {
+        const branch = line.split("|")[1]?.trim();
+        if (branch && branch !== currentBranch) {
           const r = runAction(`git checkout ${branch}`);
           app.flash(r.split("\n")[0] || `→ ${branch}`);
           refresh(); app.requestRender();
         }
       }
     }
+    else if (key.name === "D" && view === "branches") {
+      const line = branchLines[selectedIndex];
+      if (line) {
+        const branch = line.split("|")[1]?.trim();
+        if (branch && branch !== currentBranch) {
+          const r = runAction(`git branch -d ${branch}`);
+          app.flash(r.split("\n")[0] || `Deleted ${branch}`);
+          loadBranches(); app.requestRender();
+        } else {
+          app.flash("Can't delete current branch");
+        }
+      }
+    }
+    else if (key.name === "m" && view === "branches") {
+      const line = branchLines[selectedIndex];
+      if (line) {
+        const branch = line.split("|")[1]?.trim();
+        if (branch && branch !== currentBranch) {
+          const r = runAction(`git merge ${branch}`);
+          app.flash(r.split("\n")[0] || `Merged ${branch}`);
+          refresh(); app.requestRender();
+        }
+      }
+    }
 
-    // PR checkout
+    // ── PR actions ──
     else if (key.name === "return" && view === "prs") {
-      const line = prLines[scrollOffset];
+      const line = prLines[selectedIndex];
       if (line) {
         const match = line.match(/^#(\d+)/);
         if (match) {
@@ -446,7 +553,14 @@ export const gitScreen: Screen = {
       }
     }
 
-    // Back
-    else if (key.name === "escape") { app.back(); }
+    // Back — from diff go back to previous view, otherwise exit
+    else if (key.name === "escape") {
+      if (view === "diff") {
+        view = "log"; scrollOffset = 0;
+        refresh(); app.requestRender();
+      } else {
+        app.back();
+      }
+    }
   },
 };
