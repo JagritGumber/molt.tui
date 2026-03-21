@@ -4,22 +4,30 @@ layout {
         plugin location="zellij:tab-bar"
     }
 
-    // Top Row
-    pane split_direction="vertical" {
-        // Molt.tui runs here
-        pane command="bun" {
-            args "run" "start"
-            cwd "/mnt/d/moltui"
+    // Tab 1: Molt.tui workspace
+    tab name="Molt.tui" focus=true {
+        pane split_direction="vertical" {
+            // Molt.tui runs in the left pane
+            pane command="bun" size="40%" {
+                args "run" "start"
+                cwd "/mnt/d/moltui"
+                name "molt.tui"
+            }
+            // Right side: two stacked shells
+            pane split_direction="horizontal" {
+                pane name="work"
+                pane name="logs"
+            }
         }
-        pane
-        pane
     }
 
-    // Bottom Row
-    pane split_direction="vertical" {
-        pane
-        pane
-        pane
+    // Tab 2: Dev shells
+    tab name="Dev" {
+        pane split_direction="vertical" {
+            pane
+            pane
+            pane
+        }
     }
 
     pane size=1 borderless=true {

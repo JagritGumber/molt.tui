@@ -1,34 +1,44 @@
-// Dashboard - main menu screen
+// Dashboard - neovim-style shortcut menu
 
 import { app, type Screen } from "../tui/app.ts";
 import { cursor, fg, bg, style, write, getTermSize } from "../tui/ansi.ts";
-import { drawList, drawBox, drawHR, badge, type ListItem } from "../tui/components.ts";
+import { drawHR, badge } from "../tui/components.ts";
 import { listAgents } from "../agents/personality.ts";
 import { loadConfig } from "../utils/config.ts";
 import type { KeyEvent } from "../tui/input.ts";
 
-const MENU_ITEMS: ListItem[] = [
-  { label: "Agents", value: "agents", description: "manage your AI agent personalities" },
-  { label: "Generate Post", value: "generate", description: "create a new post with AI" },
-  { label: "Post to Moltbook", value: "post", description: "publish generated content" },
-  { label: "Tasks", value: "tasks", description: "plan and track your work" },
-  { label: "Feed", value: "feed", description: "browse moltbook posts" },
-  { label: "Settings", value: "settings", description: "configure API keys & preferences" },
-  { label: "Quit", value: "quit", description: "exit moltui" },
+interface MenuItem {
+  key: string;       // shortcut key
+  label: string;     // display name
+  target: string;    // screen name or "quit"
+  description: string;
+  icon: string;
+}
+
+const MENU: MenuItem[] = [
+  { key: "a", label: "Agents",        target: "agents",   description: "manage AI personalities",  icon: "🤖" },
+  { key: "g", label: "Generate",      target: "generate", description: "create a post with AI",    icon: "✨" },
+  { key: "p", label: "Post",          target: "post",     description: "publish to moltbook",      icon: "📤" },
+  { key: "t", label: "Tasks",         target: "tasks",    description: "plan and track work",       icon: "📋" },
+  { key: "f", label: "Feed",          target: "feed",     description: "browse moltbook posts",    icon: "📰" },
+  { key: "s", label: "Settings",      target: "settings", description: "API keys & preferences",   icon: "⚙" },
+  { key: "q", label: "Quit",          target: "quit",     description: "exit molt.tui",             icon: "👋" },
 ];
 
-let selectedIndex = 0;
+// Build a keymap for instant lookup
+const KEYMAP = new Map(MENU.map((m) => [m.key, m]));
 
 export const dashboardScreen: Screen = {
   name: "dashboard",
-  statusHint: "↑↓ navigate • enter select • q quit",
+  statusHint: "press a highlighted key to navigate",
 
   render() {
     const { rows, cols } = getTermSize();
     const agents = listAgents();
     const config = loadConfig();
+    const w = Math.min(60, cols - 6);
 
-    // Logo area
+    // Logo
     const logoRow = 3;
     cursor.to(logoRow, 3);
     write(`${fg.brightCyan}${style.bold}  ╔╦╗╔═╗╦  ╔╦╗ ╔╦╗╦ ╦╦${style.reset}`);
@@ -47,29 +57,31 @@ export const dashboardScreen: Screen = {
     const agentCount = badge(`${agents.length} agents`, fg.brightCyan);
     write(`  ${zaiStatus}  ${moltStatus}  ${agentCount}`);
 
-    drawHR(statusRow + 1, 3, Math.min(60, cols - 6));
+    drawHR(statusRow + 1, 3, w);
 
-    // Menu
+    // Neovim-style menu
     const menuRow = statusRow + 3;
-    drawList(menuRow, 3, Math.min(65, cols - 6), MENU_ITEMS, selectedIndex, Math.min(MENU_ITEMS.length, rows - menuRow - 2));
+    MENU.forEach((item, i) => {
+      if (menuRow + i >= rows - 2) return;
+      cursor.to(menuRow + i, 5);
+
+      // Highlighted shortcut key like neovim
+      const keyBadge = `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} ${item.key} ${style.reset}`;
+      const label = `${fg.brightWhite}${style.bold} ${item.label}${style.reset}`;
+      const desc = `${fg.gray} ${item.description}${style.reset}`;
+
+      write(`${keyBadge}${label}${desc}\x1b[K`);
+    });
   },
 
   onKey(key: KeyEvent) {
-    if (key.name === "up" || key.name === "k") {
-      selectedIndex = Math.max(0, selectedIndex - 1);
-      app.requestRender();
-    } else if (key.name === "down" || key.name === "j") {
-      selectedIndex = Math.min(MENU_ITEMS.length - 1, selectedIndex + 1);
-      app.requestRender();
-    } else if (key.name === "return") {
-      const item = MENU_ITEMS[selectedIndex]!;
-      if (item.value === "quit") {
+    const item = KEYMAP.get(key.name);
+    if (item) {
+      if (item.target === "quit") {
         app.shutdown();
       } else {
-        app.navigate(item.value);
+        app.navigate(item.target);
       }
-    } else if (key.name === "q") {
-      app.shutdown();
     }
   },
 };
