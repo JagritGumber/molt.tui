@@ -21,6 +21,30 @@ const SECTIONS: Record<string, Section[]> = {
     },
   ],
   dashboard: [],
+  git: [
+    {
+      title: "Git — Tabs",
+      keys: [
+        ["1", "log (graph)"],
+        ["2", "status"],
+        ["3", "branches"],
+        ["4", "PRs"],
+        ["5", "diff"],
+        ["Tab", "cycle tabs"],
+      ],
+    },
+    {
+      title: "Git — Actions",
+      keys: [
+        ["f", "fetch (status tab)"],
+        ["p", "pull (status tab)"],
+        ["P", "push (status tab)"],
+        ["s", "stage all (status tab)"],
+        ["Enter", "checkout branch/PR"],
+        ["r", "refresh"],
+      ],
+    },
+  ],
   social: [
     {
       title: "Social — Agent Controls",
