@@ -82,74 +82,155 @@ function loadLog() {
     };
   });
 
-  // Build graph — track active columns (branch lanes)
-  const lanes: string[] = []; // lane[col] = hash of commit that "owns" this lane
-  const branchColorMap = new Map<string, string>(); // branch name → color
+  // Build connected graph with merge/fork lines
+  // Each commit produces a commit row + a connector row
+  const lanes: string[] = []; // lane[col] = hash expected next
+  const laneColors: string[] = []; // color per lane
   let colorIdx = 0;
 
-  function getBranchColor(name: string): string {
-    if (!branchColorMap.has(name)) {
-      branchColorMap.set(name, BRANCH_COLORS[colorIdx % BRANCH_COLORS.length]!);
-      colorIdx++;
-    }
-    return branchColorMap.get(name)!;
+  function nextColor(): string {
+    return BRANCH_COLORS[colorIdx++ % BRANCH_COLORS.length]!;
   }
 
-  logLines = commits.map((commit) => {
-    // Find which lane this commit is in
+  function getLaneColor(col: number): string {
+    return laneColors[col] || fg.gray;
+  }
+
+  logLines = [];
+
+  for (const commit of commits) {
+    // Find which lane this commit sits in
     let col = lanes.indexOf(commit.hash);
     if (col === -1) {
-      // New branch — add a lane
       col = lanes.indexOf("");
-      if (col === -1) { col = lanes.length; lanes.push(""); }
+      if (col === -1) { col = lanes.length; lanes.push(""); laneColors.push(""); }
       lanes[col] = commit.hash;
+      laneColors[col] = nextColor();
     }
 
-    // Determine color for this lane
-    const mainRef = commit.refs.split(",")[0]?.trim() || `lane-${col}`;
-    const color = getBranchColor(mainRef);
+    const myColor = getLaneColor(col);
+    const numLanes = lanes.length;
 
-    // Build the graph prefix
-    let graph = "";
-    for (let i = 0; i < lanes.length; i++) {
+    // ── Commit row: show ● at col, │ at other active lanes ──
+    let commitRow = "";
+    for (let i = 0; i < numLanes; i++) {
       if (i === col) {
-        graph += `${color}●${style.reset} `;
+        commitRow += `${myColor}●${style.reset}`;
       } else if (lanes[i]) {
-        const laneColor = getBranchColor(lanes[i]!.slice(0, 4) || `lane-${i}`);
-        graph += `${laneColor}│${style.reset} `;
+        commitRow += `${getLaneColor(i)}│${style.reset}`;
       } else {
-        graph += "  ";
+        commitRow += " ";
       }
+      commitRow += " ";
     }
 
-    // Update lanes for parents
+    // Text
+    const hashStr = `${fg.yellow}${commit.hash}${style.reset}`;
+    const refStr = commit.refs ? ` ${fg.brightGreen}${style.bold}(${commit.refs})${style.reset}` : "";
+    const subjStr = `${fg.white}${commit.subject}${style.reset}`;
+    const dateStr = ` ${fg.gray}${commit.date}${style.reset}`;
+    logLines.push(`${commitRow}${hashStr}${refStr} ${subjStr}${dateStr}`);
+
+    // ── Figure out lane changes for connector row ──
+    const prevLanes = [...lanes];
+    const prevColors = [...laneColors];
+
+    // First parent continues in the same lane
     if (commit.parents.length === 0) {
       lanes[col] = "";
     } else {
       lanes[col] = commit.parents[0] || "";
-      // Merge commits — additional parents get new lanes
+      // Additional parents (merge) — find or create lanes
       for (let p = 1; p < commit.parents.length; p++) {
-        const parentHash = commit.parents[p]!;
-        const existingLane = lanes.indexOf(parentHash);
-        if (existingLane === -1) {
-          const freeLane = lanes.indexOf("");
-          if (freeLane !== -1) lanes[freeLane] = parentHash;
-          else lanes.push(parentHash);
+        const ph = commit.parents[p]!;
+        if (lanes.includes(ph)) continue; // already tracked
+        const free = lanes.indexOf("");
+        if (free !== -1 && free !== col) {
+          lanes[free] = ph;
+          laneColors[free] = nextColor();
+        } else {
+          lanes.push(ph);
+          laneColors.push(nextColor());
         }
       }
     }
 
-    // Build the text part
-    const hashStr = `${fg.yellow}${commit.hash}${style.reset}`;
-    const refStr = commit.refs ? ` ${fg.brightGreen}${style.bold}(${commit.refs})${style.reset}` : "";
-    const subjStr = `${fg.white}${commit.subject}${style.reset}`;
-    const dateStr = `${fg.gray}${commit.date}${style.reset}`;
+    // ── Connector row: draw lines connecting old to new positions ──
+    const maxL = Math.max(prevLanes.length, lanes.length);
+    let connRow = "";
+    let hasConnectors = false;
 
-    return `${graph}${hashStr}${refStr} ${subjStr} ${dateStr}`;
-  });
+    for (let i = 0; i < maxL; i++) {
+      const wasActive = i < prevLanes.length && prevLanes[i] !== "";
+      const isActive = i < lanes.length && lanes[i] !== "";
 
-  // Clean up empty lanes at the end
-  while (lanes.length > 0 && lanes[lanes.length - 1] === "") lanes.pop();
+      if (i === col && commit.parents.length > 1) {
+        // Merge point — show fork downward
+        connRow += `${myColor}├${style.reset}`;
+        hasConnectors = true;
+      } else if (isActive && wasActive) {
+        connRow += `${getLaneColor(i)}│${style.reset}`;
+      } else if (isActive && !wasActive) {
+        // New branch spawning
+        connRow += `${getLaneColor(i)}╭${style.reset}`;
+        hasConnectors = true;
+      } else if (!isActive && wasActive) {
+        // Branch ending
+        connRow += `${prevColors[i] || fg.gray}╯${style.reset}`;
+        hasConnectors = true;
+      } else {
+        connRow += " ";
+      }
+      connRow += " ";
+    }
+
+    // Draw merge connection lines
+    if (commit.parents.length > 1) {
+      // Find where the merge parents are
+      const mergeTargets: number[] = [];
+      for (let p = 1; p < commit.parents.length; p++) {
+        const ph = commit.parents[p]!;
+        const lane = lanes.indexOf(ph);
+        if (lane !== -1 && lane !== col) mergeTargets.push(lane);
+      }
+
+      if (mergeTargets.length > 0) {
+        // Rebuild connector with merge lines
+        connRow = "";
+        const minMerge = Math.min(col, ...mergeTargets);
+        const maxMerge = Math.max(col, ...mergeTargets);
+
+        for (let i = 0; i < maxL; i++) {
+          const isActive = i < lanes.length && lanes[i] !== "";
+          const isMergeEnd = mergeTargets.includes(i);
+
+          if (i === col) {
+            connRow += `${myColor}┤${style.reset}`;
+          } else if (isMergeEnd) {
+            connRow += `${getLaneColor(i)}╰${style.reset}`;
+            hasConnectors = true;
+          } else if (i > minMerge && i < maxMerge && (isActive || true)) {
+            // Horizontal merge line between col and merge target
+            if (isActive && !mergeTargets.includes(i) && i !== col) {
+              connRow += `${getLaneColor(i)}┼${style.reset}`;
+            } else {
+              connRow += `${myColor}─${style.reset}`;
+            }
+          } else if (isActive) {
+            connRow += `${getLaneColor(i)}│${style.reset}`;
+          } else {
+            connRow += " ";
+          }
+          connRow += " ";
+        }
+        hasConnectors = true;
+      }
+    }
+
+    if (hasConnectors) {
+      logLines.push(connRow);
+    }
+  }
 }
 
 function loadStatus() {
