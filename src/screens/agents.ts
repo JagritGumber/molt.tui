@@ -1,8 +1,8 @@
 // Agents screen - list, create, edit, delete agent personalities
 
 import { app, type Screen } from "../tui/app.ts";
-import { cursor, fg, style, write, getTermSize, fitWidth } from "../tui/ansi.ts";
-import { drawList, drawBox, drawTextInput, drawHR, badge, type ListItem } from "../tui/components.ts";
+import { cursor, fg, style, write, getTermSize } from "../tui/ansi.ts";
+import { drawList, drawHR, type ListItem } from "../tui/components.ts";
 import { listAgents, createAgent, deleteAgent, type AgentPersonality } from "../agents/personality.ts";
 import type { KeyEvent } from "../tui/input.ts";
 
@@ -49,37 +49,20 @@ export const agentsScreen: Screen = {
       drawList(6, 3, Math.min(65, cols - 6), items, selectedIndex, Math.min(items.length, rows - 9));
     }
 
-    // Detail panel for selected agent (only if terminal is wide enough)
-    if (selectedIndex < agents.length && cols > 90) {
+    // Agent info shown inline below list when selected
+    if (selectedIndex < agents.length) {
       const agent = agents[selectedIndex]!;
-      const detailRow = 6;
-      const boxW = 34;
-      const detailCol = cols - boxW - 2;
-      // Maximum visible chars per line inside the box
-      const lineW = boxW - 4;
-
-      drawBox(detailRow - 1, detailCol, boxW, 12, agent.name);
-      const dc = detailCol + 2;
-
-      // Write a label:value line, truncated to fit inside the box
-      const writeLine = (row: number, label: string, val: string) => {
-        const maxVal = lineW - label.length;
-        const clipped = maxVal <= 0 ? "" : val.length > maxVal ? val.slice(0, maxVal - 1) + "…" : val;
-        cursor.to(row, dc);
-        write(`${fg.gray}${label}${fg.white}${clipped}${style.reset}\x1b[K`);
+      const infoRow = Math.min(6 + items.length + 1, rows - 5);
+      const iw = Math.min(cols - 6, 70);
+      const clip = (s: string, max: number) => {
+        const clean = s.replace(/[\n\r\t]/g, " ").replace(/\s+/g, " ");
+        return clean.length > max ? clean.slice(0, max - 1) + "…" : clean;
       };
-
-      writeLine(detailRow + 1, "Tone: ", agent.tone.replace(/[\n\r]/g, " "));
-      writeLine(detailRow + 2, "Style: ", agent.style.replace(/[\n\r]/g, " "));
-      cursor.to(detailRow + 3, dc); write(`${fg.gray}Topics:${style.reset}\x1b[K`);
-      agent.topics.slice(0, 4).forEach((t, i) => {
-        const maxT = lineW - 3;
-        const ct = t.length > maxT ? t.slice(0, maxT - 1) + "…" : t;
-        cursor.to(detailRow + 4 + i, dc + 1);
-        write(`${fg.cyan}• ${fg.white}${ct}${style.reset}\x1b[K`);
-      });
-      writeLine(detailRow + 8, "Submolts: ", agent.submolts.join(", ") || "none");
-      writeLine(detailRow + 9, "Molt ID: ", agent.moltbookAgentId || "unregistered");
+      drawHR(infoRow, 3, iw);
+      cursor.to(infoRow + 1, 3);
+      write(`${fg.brightCyan}${style.bold}${clip(agent.name, iw)}${style.reset}\x1b[K`);
+      cursor.to(infoRow + 2, 3);
+      write(`${fg.gray}${clip(agent.tone + " • " + agent.topics.join(", "), iw)}${style.reset}\x1b[K`);
     }
   },
 
