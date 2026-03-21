@@ -165,8 +165,8 @@ function loadLog() {
       const isActive = i < lanes.length && lanes[i] !== "";
 
       if (i === col && commit.parents.length > 1) {
-        // Merge point — show fork downward
-        connRow += `${myColor}├${style.reset}`;
+        // Merge point
+        connRow += `${myColor}│${style.reset}`;
         hasConnectors = true;
       } else if (isActive && wasActive) {
         connRow += `${getLaneColor(i)}│${style.reset}`;
@@ -205,9 +205,9 @@ function loadLog() {
           const isMergeEnd = mergeTargets.includes(i);
 
           if (i === col) {
-            connRow += `${myColor}┤${style.reset}`;
+            connRow += `${myColor}├${style.reset}`;
           } else if (isMergeEnd) {
-            connRow += `${getLaneColor(i)}╰${style.reset}`;
+            connRow += `${getLaneColor(i)}╮${style.reset}`;
             hasConnectors = true;
           } else if (i > minMerge && i < maxMerge && (isActive || true)) {
             // Horizontal merge line between col and merge target
