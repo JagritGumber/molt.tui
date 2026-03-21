@@ -108,15 +108,6 @@ class App {
         this.shutdown();
         return;
       }
-      // Global: q always quits (except in text input modes)
-      if (key.name === "q" && !key.ctrl) {
-        const s = this.screens.get(this.activeScreen);
-        // Let screens with text input handle q themselves
-        if (!s?.handlesTextInput) {
-          this.shutdown();
-          return;
-        }
-      }
       // Global: ? to toggle cheatsheet
       if (key.name === "?" && !key.ctrl) {
         toggleCheatsheet();
@@ -130,6 +121,14 @@ class App {
           this.requestRender();
         }
         return;
+      }
+      // Global: q always quits (except in text input modes)
+      if (key.name === "q" && !key.ctrl) {
+        const s = this.screens.get(this.activeScreen);
+        if (!s?.handlesTextInput) {
+          this.shutdown();
+          return;
+        }
       }
       const s = this.screens.get(this.activeScreen);
       s?.onKey(key);
