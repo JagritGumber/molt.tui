@@ -175,6 +175,7 @@ export interface PersonalityPrompt {
   style: string;
   bio: string;
   constraints?: string;
+  learnings?: string; // injected from learnings system
 }
 
 function buildSystemPrompt(p: PersonalityPrompt): string {
@@ -186,6 +187,7 @@ PERSONALITY:
 - Writing style: ${p.style}
 - Bio: ${p.bio}
 ${p.constraints ? `- Constraints: ${p.constraints}` : ""}
+${p.learnings || ""}
 
 RULES:
 - Write authentic, engaging posts that match your personality

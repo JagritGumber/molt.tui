@@ -24,9 +24,21 @@ const SECTIONS: Record<string, Section[]> = {
     {
       title: "Dashboard",
       keys: [
-        ["↑↓ / j k", "navigate menu"],
-        ["Enter", "open selected"],
-        ["q", "quit"],
+        ["s/a/t/c/q", "press key to navigate"],
+      ],
+    },
+  ],
+  social: [
+    {
+      title: "Social — Agent Controls",
+      keys: [
+        ["S", "start / stop agent"],
+        ["P", "post now (manual)"],
+        ["E", "engage with feed"],
+        ["H", "check home / notifications"],
+        ["Tab", "switch agent"],
+        ["j / k", "scroll activity log"],
+        ["q", "back to dashboard"],
       ],
     },
   ],

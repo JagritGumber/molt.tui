@@ -12,6 +12,7 @@ import { postScreen } from "./screens/post.ts";
 import { feedScreen } from "./screens/feed.ts";
 import { settingsScreen } from "./screens/settings.ts";
 import { tasksScreen } from "./screens/tasks.ts";
+import { socialScreen } from "./screens/social.ts";
 import { onboardingScreen, needsOnboarding } from "./screens/onboarding.ts";
 import { ensureDirs } from "./utils/config.ts";
 
@@ -28,6 +29,7 @@ app.register(postScreen);
 app.register(feedScreen);
 app.register(settingsScreen);
 app.register(tasksScreen);
+app.register(socialScreen);
 app.register(onboardingScreen);
 
 // Launch — show onboarding on first run, dashboard otherwise
