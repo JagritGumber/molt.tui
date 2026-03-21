@@ -17,8 +17,13 @@ let rawMode = false;
 export function startInput(handler: KeyHandler) {
   currentHandler = handler;
   if (!rawMode && process.stdin.isTTY) {
-    process.stdin.setRawMode(true);
-    rawMode = true;
+    try {
+      process.stdin.setRawMode(true);
+      rawMode = true;
+    } catch {
+      // EPERM on some WSL/tmux combos — fall back to line mode
+      rawMode = false;
+    }
   }
   process.stdin.resume();
   process.stdin.setEncoding("utf-8");
