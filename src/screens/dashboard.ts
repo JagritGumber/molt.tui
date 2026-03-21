@@ -19,7 +19,6 @@ const MENU: MenuItem[] = [
   { key: "a", label: "Agents",   target: "agents",   description: "manage AI personalities" },
   { key: "t", label: "Tasks",    target: "tasks",    description: "plan and track work" },
   { key: "c", label: "Settings", target: "settings", description: "API keys & preferences" },
-  { key: "q", label: "Quit",     target: "quit",     description: "exit molt.tui" },
 ];
 
 const KEYMAP = new Map(MENU.map((m) => [m.key, m]));
@@ -70,11 +69,7 @@ export const dashboardScreen: Screen = {
   onKey(key: KeyEvent) {
     const item = KEYMAP.get(key.name);
     if (item) {
-      if (item.target === "quit") {
-        app.shutdown();
-      } else {
-        app.navigate(item.target);
-      }
+      app.navigate(item.target);
     }
   },
 };

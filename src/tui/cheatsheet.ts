@@ -12,9 +12,9 @@ const SECTIONS: Record<string, Section[]> = {
     {
       title: "Global",
       keys: [
+        ["q", "quit molt.tui"],
+        ["Esc", "go back"],
         ["?", "toggle this cheatsheet"],
-        ["Ctrl+C", "quit"],
-        ["Esc", "back / cancel"],
         ["↑/k ↓/j", "navigate up / down"],
         ["Enter", "select / confirm"],
       ],
@@ -31,7 +31,6 @@ const SECTIONS: Record<string, Section[]> = {
         ["H", "check home / notifications"],
         ["Tab", "switch agent"],
         ["j / k", "scroll activity log"],
-        ["q", "back to dashboard"],
       ],
     },
   ],

@@ -32,6 +32,7 @@ function resetForm() {
 export const createAgentScreen: Screen = {
   name: "create-agent",
   statusHint: "tab/↓ next field • shift+tab/↑ prev • enter create • esc cancel",
+  handlesTextInput: true,
 
   onEnter() {
     resetForm();

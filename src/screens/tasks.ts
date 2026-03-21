@@ -500,8 +500,6 @@ function handleListKey(key: KeyEvent) {
     // G = go to bottom
     selectedIndex = Math.max(0, tasks.length - 1);
     app.requestRender();
-  } else if (key.name === "q") {
-    app.back();
   }
 }
 
@@ -600,7 +598,8 @@ let fileWatcher: FSWatcher | null = null;
 
 export const tasksScreen: Screen = {
   name: "tasks",
-  statusHint: ": command bar • space toggle • x done • n new • p priority • tab filter • q back",
+  statusHint: ": command bar • space toggle • x done • n new • p priority • tab filter • esc back • q quit",
+  get handlesTextInput() { return mode !== "list"; },
 
   onEnter() {
     mode = "list";

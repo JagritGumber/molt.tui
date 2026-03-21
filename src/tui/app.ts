@@ -12,6 +12,7 @@ export interface Screen {
   onEnter?: () => void;
   onLeave?: () => void;
   statusHint?: string;
+  handlesTextInput?: boolean; // if true, q key goes to screen not global quit
 }
 
 class App {
@@ -106,6 +107,15 @@ class App {
       if (key.ctrl && key.name === "c") {
         this.shutdown();
         return;
+      }
+      // Global: q always quits (except in text input modes)
+      if (key.name === "q" && !key.ctrl) {
+        const s = this.screens.get(this.activeScreen);
+        // Let screens with text input handle q themselves
+        if (!s?.handlesTextInput) {
+          this.shutdown();
+          return;
+        }
       }
       // Global: ? to toggle cheatsheet
       if (key.name === "?" && !key.ctrl) {
