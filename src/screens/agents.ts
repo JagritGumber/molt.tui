@@ -14,10 +14,13 @@ function refreshAgents() {
 }
 
 function getItems(): ListItem[] {
+  const short = (s: string, max: number) =>
+    s.replace(/[\n\r\t]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+
   const items: ListItem[] = agents.map((a) => ({
     label: a.name,
     value: a.id,
-    description: `${a.tone} • ${a.topics.slice(0, 3).join(", ")}`,
+    description: short(a.topics.slice(0, 3).join(", "), 40),
   }));
   items.push({ label: "+ Create New Agent", value: "__create__", description: "define a new personality" });
   return items;
