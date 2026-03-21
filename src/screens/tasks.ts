@@ -499,7 +499,7 @@ function handleListKey(key: KeyEvent) {
     // G = go to bottom
     selectedIndex = Math.max(0, tasks.length - 1);
     app.requestRender();
-  } else if (key.name === "escape" || key.name === "q") {
+  } else if (key.name === "q") {
     app.back();
   }
 }
@@ -507,9 +507,6 @@ function handleListKey(key: KeyEvent) {
 function handleCommandKey(key: KeyEvent) {
   if (key.name === "return") {
     executeCommand(cmdInput);
-    mode = "list";
-    app.requestRender();
-  } else if (key.name === "escape") {
     mode = "list";
     app.requestRender();
   } else if (key.name === "backspace") {
@@ -574,9 +571,6 @@ function handleFormKey(key: KeyEvent) {
     mode = "list";
     reload();
     app.requestRender();
-  } else if (key.name === "escape") {
-    mode = "list";
-    app.requestRender();
   } else if (!key.ctrl && key.name.length === 1) {
     field.value += key.name;
     app.requestRender();
@@ -621,6 +615,17 @@ export const tasksScreen: Screen = {
   },
 
   onKey(key: KeyEvent) {
+    // Global escape — always go back regardless of mode
+    if (key.name === "escape") {
+      if (mode === "list") {
+        app.back();
+      } else {
+        mode = "list";
+        app.requestRender();
+      }
+      return;
+    }
+
     switch (mode) {
       case "list": handleListKey(key); break;
       case "command": handleCommandKey(key); break;
