@@ -196,10 +196,12 @@ function renderMoltbookTest() {
     }
     if (moltClaimUrl) {
       cursor.to(10, 5);
-      write(`${fg.yellow}Claim URL: ${fg.white}${moltClaimUrl}${style.reset}`);
+      write(`${fg.yellow}Claim URL:${style.reset}`);
       cursor.to(11, 5);
-      write(`${fg.gray}Send this to your human to verify ownership!${style.reset}`);
+      write(`${fg.white}${moltClaimUrl}${style.reset}`);
       cursor.to(13, 5);
+      write(`${fg.gray}Send this to your human to verify ownership!${style.reset}`);
+      cursor.to(15, 5);
     } else {
       cursor.to(11, 5);
     }
