@@ -20,6 +20,7 @@ class App {
   private history: string[] = [];
   private renderTimer: ReturnType<typeof setInterval> | null = null;
   private needsRender = true;
+  private needsFullClear = false;
   private statusMessage = "";
   private statusTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -36,6 +37,7 @@ class App {
     this.activeScreen = name;
     const next = this.screens.get(name);
     next?.onEnter?.();
+    this.needsFullClear = true;
     this.requestRender();
   }
 
@@ -47,6 +49,7 @@ class App {
       this.activeScreen = prev;
       const next = this.screens.get(prev);
       next?.onEnter?.();
+      this.needsFullClear = true;
       this.requestRender();
     }
   }
@@ -70,6 +73,12 @@ class App {
     this.needsRender = false;
 
     cursor.hide();
+    if (this.needsFullClear) {
+      // Nuclear clear for Alacritty/WSL: flip alt buffer to force full reset
+      screen.mainBuffer();
+      screen.altBuffer();
+      this.needsFullClear = false;
+    }
     screen.clear();
     drawHeader();
 
