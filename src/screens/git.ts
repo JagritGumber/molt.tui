@@ -50,9 +50,106 @@ function refresh() {
   else if (view === "prs") loadPRs();
 }
 
+// Branch colors — cycle through these for different branches
+const BRANCH_COLORS = [
+  fg.brightCyan, fg.brightMagenta, fg.brightGreen, fg.brightYellow,
+  fg.brightBlue, fg.brightRed, fg.cyan, fg.magenta,
+];
+
+interface CommitNode {
+  hash: string;
+  refs: string;
+  subject: string;
+  parents: string[];
+  date: string;
+  author: string;
+}
+
 function loadLog() {
-  const raw = run("git log --oneline --graph --decorate --all -50");
-  logLines = raw ? raw.split("\n") : ["(no commits)"];
+  // Get structured commit data
+  const raw = run("git log --all --format='%h|%p|%D|%s|%cr|%an' -50");
+  if (!raw) { logLines = ["(no commits)"]; return; }
+
+  const commits: CommitNode[] = raw.split("\n").map((line) => {
+    const [hash, parents, refs, subject, date, author] = line.split("|");
+    return {
+      hash: hash || "",
+      parents: (parents || "").split(" ").filter(Boolean),
+      refs: refs || "",
+      subject: subject || "",
+      date: date || "",
+      author: author || "",
+    };
+  });
+
+  // Build graph — track active columns (branch lanes)
+  const lanes: string[] = []; // lane[col] = hash of commit that "owns" this lane
+  const branchColorMap = new Map<string, string>(); // branch name → color
+  let colorIdx = 0;
+
+  function getBranchColor(name: string): string {
+    if (!branchColorMap.has(name)) {
+      branchColorMap.set(name, BRANCH_COLORS[colorIdx % BRANCH_COLORS.length]!);
+      colorIdx++;
+    }
+    return branchColorMap.get(name)!;
+  }
+
+  logLines = commits.map((commit) => {
+    // Find which lane this commit is in
+    let col = lanes.indexOf(commit.hash);
+    if (col === -1) {
+      // New branch — add a lane
+      col = lanes.indexOf("");
+      if (col === -1) { col = lanes.length; lanes.push(""); }
+      lanes[col] = commit.hash;
+    }
+
+    // Determine color for this lane
+    const mainRef = commit.refs.split(",")[0]?.trim() || `lane-${col}`;
+    const color = getBranchColor(mainRef);
+
+    // Build the graph prefix
+    let graph = "";
+    for (let i = 0; i < lanes.length; i++) {
+      if (i === col) {
+        graph += `${color}●${style.reset} `;
+      } else if (lanes[i]) {
+        const laneColor = getBranchColor(lanes[i]!.slice(0, 4) || `lane-${i}`);
+        graph += `${laneColor}│${style.reset} `;
+      } else {
+        graph += "  ";
+      }
+    }
+
+    // Update lanes for parents
+    if (commit.parents.length === 0) {
+      lanes[col] = "";
+    } else {
+      lanes[col] = commit.parents[0] || "";
+      // Merge commits — additional parents get new lanes
+      for (let p = 1; p < commit.parents.length; p++) {
+        const parentHash = commit.parents[p]!;
+        const existingLane = lanes.indexOf(parentHash);
+        if (existingLane === -1) {
+          const freeLane = lanes.indexOf("");
+          if (freeLane !== -1) lanes[freeLane] = parentHash;
+          else lanes.push(parentHash);
+        }
+      }
+    }
+
+    // Build the text part
+    const hashStr = `${fg.yellow}${commit.hash}${style.reset}`;
+    const refStr = commit.refs ? ` ${fg.brightGreen}${style.bold}(${commit.refs})${style.reset}` : "";
+    const subjStr = `${fg.white}${commit.subject}${style.reset}`;
+    const dateStr = `${fg.gray}${commit.date}${style.reset}`;
+
+    return `${graph}${hashStr}${refStr} ${subjStr} ${dateStr}`;
+  });
+
+  // Clean up empty lanes at the end
+  while (lanes.length > 0 && lanes[lanes.length - 1] === "") lanes.pop();
 }
 
 function loadStatus() {
@@ -76,39 +173,9 @@ function loadDiff() {
   diffLines = raw ? [...raw.split("\n"), "", ...full.split("\n").slice(0, 200)] : ["(no changes)"];
 }
 
-// ── Graph coloring ──
-
+// Log lines are pre-colored in loadLog(), just pass through
 function colorGraphLine(line: string): string {
-  let result = "";
-  let inGraph = true;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]!;
-    if (inGraph && "*|/\\_ -".includes(ch)) {
-      if (ch === "*") result += `${fg.brightYellow}${ch}${style.reset}`;
-      else if (ch === "|") result += `${fg.brightCyan}${ch}${style.reset}`;
-      else if (ch === "/" || ch === "\\") result += `${fg.brightMagenta}${ch}${style.reset}`;
-      else result += ch;
-    } else {
-      inGraph = false;
-      // Refs in parens
-      if (ch === "(" && line.indexOf(")", i) > i) {
-        const close = line.indexOf(")", i);
-        result += `${fg.brightGreen}${style.bold}${line.slice(i, close + 1)}${style.reset}`;
-        i = close;
-        continue;
-      }
-      // Hash
-      const hashMatch = line.slice(i).match(/^[a-f0-9]{7,9}/);
-      if (hashMatch && i < 20) {
-        result += `${fg.yellow}${hashMatch[0]}${style.reset}`;
-        i += hashMatch[0].length - 1;
-        continue;
-      }
-      result += `${fg.white}${ch}${style.reset}`;
-    }
-  }
-  return result;
+  return line;
 }
 
 function colorStatusLine(line: string): string {
