@@ -15,6 +15,7 @@ interface MenuItem {
 }
 
 const MENU: MenuItem[] = [
+  { key: "g", label: "Git",      target: "git",      description: "repos, branches, PRs, commits" },
   { key: "s", label: "Social",   target: "social",   description: "autonomous moltbook agent" },
   { key: "a", label: "Agents",   target: "agents",   description: "manage AI personalities" },
   { key: "t", label: "Tasks",    target: "tasks",    description: "plan and track work" },
