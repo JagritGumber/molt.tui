@@ -35,6 +35,7 @@ function reset() {
 
 export const postScreen: Screen = {
   name: "post",
+  get handlesTextInput() { return phase === "select-submolt"; },
   statusHint: "",
 
   onEnter() {

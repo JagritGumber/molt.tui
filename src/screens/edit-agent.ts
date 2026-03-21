@@ -36,6 +36,7 @@ function loadForm() {
 export const editAgentScreen: Screen = {
   name: "edit-agent",
   statusHint: "tab/↓ next • shift+tab/↑ prev • enter save • esc cancel",
+  handlesTextInput: true,
 
   onEnter() {
     loadForm();

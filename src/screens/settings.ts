@@ -36,6 +36,7 @@ function displayValue(field: SettingField): string {
 export const settingsScreen: Screen = {
   name: "settings",
   statusHint: "tab/↓ next • shift+tab/↑ prev • enter save • esc back",
+  handlesTextInput: true,
 
   onEnter() {
     loadFields();

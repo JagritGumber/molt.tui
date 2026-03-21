@@ -28,7 +28,7 @@ function getItems(): ListItem[] {
 
 export const agentsScreen: Screen = {
   name: "agents",
-  statusHint: "↑↓ navigate • enter select/edit • d delete • esc back",
+  statusHint: "↑↓ navigate • enter select/edit • d delete • esc back • q quit",
 
   onEnter() {
     refreshAgents();

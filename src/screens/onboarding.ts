@@ -488,6 +488,7 @@ export function needsOnboarding(): boolean {
 export const onboardingScreen: Screen = {
   name: "onboarding",
   statusHint: "follow the steps to set up Molt.tui",
+  handlesTextInput: true,
 
   onEnter() {
     currentStep = "welcome";

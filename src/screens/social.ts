@@ -306,7 +306,7 @@ function renderStatus() {
 
 export const socialScreen: Screen = {
   name: "social",
-  statusHint: "S start/stop • P post • E engage • H home • Tab agent • q back",
+  statusHint: "S start/stop • P post • E engage • H home • Tab agent • esc back • q quit",
 
   onEnter() {
     agents = listAgents();
@@ -324,7 +324,7 @@ export const socialScreen: Screen = {
   },
 
   onKey(key: KeyEvent) {
-    if (key.name === "escape" || key.name === "q") {
+    if (key.name === "escape") {
       app.back();
     } else if (key.name === "s" || key.name === "S") {
       if (isRunning) stopAgent();
