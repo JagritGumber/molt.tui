@@ -21,6 +21,11 @@ export interface Task {
 
 const TASKS_DIR = join(getConfigDir(), "tasks");
 
+export function getTasksDir(): string {
+  ensureTasksDir();
+  return TASKS_DIR;
+}
+
 function ensureTasksDir() {
   if (!existsSync(TASKS_DIR)) mkdirSync(TASKS_DIR, { recursive: true });
 }

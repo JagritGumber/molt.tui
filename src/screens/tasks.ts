@@ -5,9 +5,10 @@ import { cursor, fg, bg, style, write, getTermSize, fitWidth, visibleLength } fr
 import { drawHR, drawTextInput, drawDialog } from "../tui/components.ts";
 import {
   listTasks, createTask, updateTask, deleteTask,
-  cycleStatus, cyclePriority, sortTasks,
+  cycleStatus, cyclePriority, sortTasks, getTasksDir,
   type Task, type Priority, type TaskStatus,
 } from "../tasks/store.ts";
+import { watch, type FSWatcher } from "fs";
 import type { KeyEvent } from "../tui/input.ts";
 
 type Mode = "list" | "create" | "edit" | "confirm-delete" | "command";
@@ -595,6 +596,8 @@ function handleDeleteKey(key: KeyEvent) {
 
 // ── Screen export ──
 
+let fileWatcher: FSWatcher | null = null;
+
 export const tasksScreen: Screen = {
   name: "tasks",
   statusHint: ": command bar • space toggle • x done • n new • p priority • tab filter • q back",
@@ -602,6 +605,26 @@ export const tasksScreen: Screen = {
   onEnter() {
     mode = "list";
     reload();
+
+    // Watch tasks dir for external changes (e.g. from Claude Code instances)
+    try {
+      const dir = getTasksDir();
+      fileWatcher = watch(dir, { persistent: false }, (event, filename) => {
+        if (filename?.endsWith(".json") && mode === "list") {
+          reload();
+          app.requestRender();
+        }
+      });
+    } catch {
+      // fs.watch may not work on all platforms (e.g. some WSL mounts)
+    }
+  },
+
+  onLeave() {
+    if (fileWatcher) {
+      fileWatcher.close();
+      fileWatcher = null;
+    }
   },
 
   render() {

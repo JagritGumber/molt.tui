@@ -7,10 +7,12 @@
   "private": true,
   "scripts": {
     "start": "bun run src/index.ts",
-    "dev": "bun --watch run src/index.ts"
+    "dev": "bun --watch run src/index.ts",
+    "task": "bun run src/task-cli.ts"
   },
   "bin": {
-    "moltui": "src/index.ts"
+    "moltui": "src/index.ts",
+    "molt-task": "src/task-cli.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
