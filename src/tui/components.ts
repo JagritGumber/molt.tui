@@ -84,8 +84,18 @@ export function drawTextInput(
   const labelStr = `${fg.gray}${label}: ${style.reset}`;
   write(labelStr);
 
-  const inputWidth = width - visibleLength(labelStr);
-  const displayVal = value.length > inputWidth - 1 ? "…" + value.slice(-(inputWidth - 2)) : value;
+  const inputWidth = Math.max(1, width - visibleLength(labelStr));
+  // Flatten newlines and strip control chars for display
+  const flat = stripAnsi(value).replace(/[\n\r\t]/g, " ").replace(/\s+/g, " ");
+
+  let displayVal: string;
+  if (focused) {
+    // Show end of text so user sees what they're typing
+    displayVal = flat.length > inputWidth - 1 ? "…" + flat.slice(-(inputWidth - 2)) : flat;
+  } else {
+    // Show start with ellipsis at end
+    displayVal = flat.length > inputWidth - 1 ? flat.slice(0, inputWidth - 2) + "…" : flat;
+  }
 
   if (focused) {
     write(`${style.underline}${fg.brightWhite}${fitWidth(displayVal, inputWidth)}${style.reset}`);
