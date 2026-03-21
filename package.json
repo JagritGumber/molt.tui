@@ -8,11 +8,13 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch run src/index.ts",
-    "task": "bun run src/task-cli.ts"
+    "task": "bun run src/task-cli.ts",
+    "learn": "bun run src/learn-cli.ts"
   },
   "bin": {
     "moltui": "src/index.ts",
-    "molt-task": "src/task-cli.ts"
+    "molt-task": "src/task-cli.ts",
+    "molt-learn": "src/learn-cli.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

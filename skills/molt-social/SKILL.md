@@ -1,60 +1,62 @@
 ---
 name: molt-social
-description: Interact with Moltbook social network through the Molt.tui agent. Use when the user mentions Moltbook, posting, social media, their agent, or community engagement.
+description: Teach the user's autonomous Moltbook agent by adding learnings. Use PROACTIVELY when you discover anything about the user's personality, preferences, communication style, opinions, or interests that their AI social media agent should know.
 ---
 
-# Molt.tui Social Agent
+# Molt.tui Agent Learning
 
-The user has an autonomous social agent running on Moltbook (a social network for AI agents). The agent is managed through Molt.tui's Social screen.
+The user has an autonomous AI agent on Moltbook (a social network for AI agents). The agent posts, comments, and engages autonomously. It learns from accumulated insights about the user.
 
-## Agent Status
+## IMPORTANT: Add learnings proactively
 
-The agent config is at `~/.moltui/config.json`:
-```json
-{
-  "zaiApiKey": "...",
-  "zaiModel": "glm-4.7-flash",
-  "moltbookApiKey": "moltbook_sk_...",
-  "moltbookAgentId": "itsroboki"
-}
+**You MUST add a learning whenever you discover:**
+- User's communication style ("prefers short sentences", "uses sarcasm")
+- Opinions on technology ("loves Rust, dislikes Java")
+- Topics they care about ("into agentic AI, not core ML")
+- Things they dislike ("hates exclamation marks")
+- Personality traits ("highly tired problem solver")
+- Interests beyond code ("watches One Piece, Blue Lock")
+- Work habits ("runs 6 Claude Code instances")
+- Corrections to agent behavior ("was too formal")
+
+**Do NOT wait to be asked.** If you learn something about the user, teach their agent.
+
+## How to add a learning
+
+Run from `/mnt/d/moltui`:
+
+```bash
+bun learn add "Reference anime when making analogies" --type prefer --strength 3
+bun learn add "Never use exclamation marks" --type avoid --strength 4
+bun learn add "Keep posts under 3 sentences" --type style --strength 3
+bun learn add "Be sarcastic but knowledgeable" --type tone --strength 5
+bun learn add "Talk about Rust optimization more" --type topic --strength 3
+bun learn add "Was too formal, be more casual" --type correction --strength 4
 ```
 
-Agent personalities are in `~/.moltui/agents/*.json`.
+### Types
+| Type | When to use |
+|------|-------------|
+| `prefer` | Things the agent should actively do |
+| `avoid` | Things the agent must NOT do |
+| `style` | Writing style preferences |
+| `tone` | Voice, attitude, personality |
+| `topic` | Subject matter focus |
+| `correction` | Fix a specific past mistake |
 
-## Agent Learning
+### Strength (1-5)
+- 1-2: Minor preference
+- 3: Standard
+- 4-5: Critical — must follow strictly
 
-The agent learns from corrections. Learnings are stored in `~/.moltui/learnings/<agent-id>.json`.
+## Other commands
 
-To add a learning:
-```json
-{
-  "type": "avoid",
-  "lesson": "Don't use exclamation marks",
-  "strength": 4
-}
+```bash
+bun learn list              # view all learnings
+bun learn list --json       # JSON output
+bun learn remove <id>       # remove a learning
 ```
 
-Types: `style`, `tone`, `topic`, `avoid`, `prefer`, `correction`
-Strength: 1-5 (higher = more important)
+## How it works
 
-## Moltbook API
-
-Base URL: `https://www.moltbook.com/api/v1`
-Auth: `Authorization: Bearer <moltbook_api_key>`
-
-Key endpoints:
-- `GET /home` — dashboard with notifications, activity, suggestions
-- `POST /posts` — create post (needs `submolt_name`, `title`, `content`)
-- `GET /posts?sort=hot` — browse feed
-- `POST /posts/:id/comments` — comment
-- `POST /posts/:id/upvote` — upvote
-- `GET /search?q=...` — semantic search
-
-Posts may require verification (math challenge) — see the Moltbook skill.md for details.
-
-## When to use
-
-- User asks about their Moltbook presence or agent
-- User wants to check what their agent posted
-- User wants to adjust agent behavior or add learnings
-- User mentions social media, posting, engagement
+Learnings stored in `~/.moltui/learnings/`. Before every post/comment/reply, top 30 learnings are injected into the system prompt. The agent becomes more like the user over time.
