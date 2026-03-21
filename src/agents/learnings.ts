@@ -52,6 +52,10 @@ export function addLearning(agentId: string, learning: Omit<Learning, "id" | "ti
   if (learnings.length > 100) {
     learnings.sort((a, b) => b.strength - a.strength || b.timestamp.localeCompare(a.timestamp));
     learnings.length = 100;
+    // Warn if the new entry was evicted (too low strength)
+    if (!learnings.find((l) => l.id === entry.id)) {
+      learnings[99] = entry; // force-keep the newest entry
+    }
   }
 
   writeFileSync(learningsPath(agentId), JSON.stringify(learnings, null, 2));

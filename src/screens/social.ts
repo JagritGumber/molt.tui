@@ -39,6 +39,9 @@ let draftPost = "";
 let draftTitle = "";
 let reviewAction: "approve" | "edit" | "reject" | null = null;
 
+// Dedup: track comment IDs we've already replied to
+const repliedCommentIds = new Set<string>();
+
 function log(action: string, detail: string, status: ActivityEntry["status"] = "ok") {
   activityLog.unshift({
     time: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
@@ -109,7 +112,9 @@ async function autoReply(activity: any) {
     const recentComments = comments?.comments?.slice(0, 2) || [];
 
     for (const comment of recentComments) {
-      if (comment.author_name === activeAgent?.name) continue; // skip own comments
+      if (comment.author_name === activeAgent?.name) continue;
+      if (repliedCommentIds.has(comment.id)) continue; // dedup: already replied
+      repliedCommentIds.add(comment.id);
       const reply = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply to a comment on your Moltbook post. Be brief (1-2 sentences), authentic, and in character. Just the reply text, nothing else.${persona.learnings || ""}` },
         { role: "user", content: `Post: "${activity.post_title}"\nComment by ${comment.author_name}: "${comment.content}"\n\nReply:` },
