@@ -54,7 +54,9 @@ Commands:
 if (cmd === "add") {
   const title = args[1];
   if (!title) { console.error("Usage: add <title>"); process.exit(1); }
-  const priority = (getFlag("priority") || "med") as Priority;
+  const prioRaw = getFlag("priority") || "med";
+  if (!["low", "med", "high"].includes(prioRaw)) { console.error(`Invalid priority: ${prioRaw}. Use: low, med, high`); process.exit(1); }
+  const priority = prioRaw as Priority;
   const tag = getFlag("tag");
   const due = getFlag("due") || "";
   const desc = getFlag("description") || "";
@@ -119,8 +121,16 @@ else if (cmd === "update") {
   if (!id) { console.error("Usage: update <id> --field value"); process.exit(1); }
   const data: Partial<{ title: string; status: TaskStatus; priority: Priority; dueDate: string; tags: string[] }> = {};
   if (getFlag("title")) data.title = getFlag("title");
-  if (getFlag("status")) data.status = getFlag("status") as TaskStatus;
-  if (getFlag("priority")) data.priority = getFlag("priority") as Priority;
+  if (getFlag("status")) {
+    const s = getFlag("status")!;
+    if (!["todo", "in-progress", "done"].includes(s)) { console.error(`Invalid status: ${s}. Use: todo, in-progress, done`); process.exit(1); }
+    data.status = s as TaskStatus;
+  }
+  if (getFlag("priority")) {
+    const p = getFlag("priority")!;
+    if (!["low", "med", "high"].includes(p)) { console.error(`Invalid priority: ${p}. Use: low, med, high`); process.exit(1); }
+    data.priority = p as Priority;
+  }
   if (getFlag("due")) data.dueDate = getFlag("due");
   if (getFlag("tag")) data.tags = [getFlag("tag")!];
 
