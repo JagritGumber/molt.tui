@@ -32,7 +32,7 @@ function reset() {
 
 export const generateScreen: Screen = {
   name: "generate",
-  handlesTextInput: true,
+  get handlesTextInput() { return phase === "input-topic"; },
   statusHint: "",
 
   onEnter() {
