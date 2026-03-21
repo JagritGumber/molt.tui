@@ -49,27 +49,37 @@ export const agentsScreen: Screen = {
       drawList(6, 3, Math.min(65, cols - 6), items, selectedIndex, Math.min(items.length, rows - 9));
     }
 
-    // Detail panel for selected agent
-    if (selectedIndex < agents.length) {
+    // Detail panel for selected agent (only if terminal is wide enough)
+    if (selectedIndex < agents.length && cols > 90) {
       const agent = agents[selectedIndex]!;
       const detailRow = 6;
-      const detailCol = Math.min(70, cols - 35);
-      const boxW = Math.min(35, cols - detailCol - 1);
-      if (detailCol > 40 && boxW > 10) {
-        drawBox(detailRow - 1, detailCol, boxW, 12, agent.name);
-        const dc = detailCol + 2;
-        const tw = boxW - 4; // text width inside box
-        const clip = (s: string) => s.length > tw ? s.slice(0, tw - 1) + "…" : s.padEnd(tw);
-        cursor.to(detailRow + 1, dc); write(`${fg.gray}Tone: ${fg.white}${clip(agent.tone)}${style.reset}`);
-        cursor.to(detailRow + 2, dc); write(`${fg.gray}Style: ${fg.white}${clip(agent.style)}${style.reset}`);
-        cursor.to(detailRow + 3, dc); write(`${fg.gray}Topics:${" ".repeat(Math.max(0, tw - 7))}${style.reset}`);
-        agent.topics.slice(0, 4).forEach((t, i) => {
-          cursor.to(detailRow + 4 + i, dc + 1);
-          write(`${fg.cyan}• ${fg.white}${clip(t)}${style.reset}`);
-        });
-        cursor.to(detailRow + 8, dc); write(`${fg.gray}Submolts: ${fg.white}${clip(agent.submolts.join(", ") || "none")}${style.reset}`);
-        cursor.to(detailRow + 9, dc); write(`${fg.gray}Molt ID: ${fg.white}${clip(agent.moltbookAgentId || "unregistered")}${style.reset}`);
-      }
+      const boxW = 34;
+      const detailCol = cols - boxW - 2;
+      // Maximum visible chars per line inside the box
+      const lineW = boxW - 4;
+
+      drawBox(detailRow - 1, detailCol, boxW, 12, agent.name);
+      const dc = detailCol + 2;
+
+      // Write a label:value line, truncated to fit inside the box
+      const writeLine = (row: number, label: string, val: string) => {
+        const maxVal = lineW - label.length;
+        const clipped = maxVal <= 0 ? "" : val.length > maxVal ? val.slice(0, maxVal - 1) + "…" : val;
+        cursor.to(row, dc);
+        write(`${fg.gray}${label}${fg.white}${clipped}${style.reset}\x1b[K`);
+      };
+
+      writeLine(detailRow + 1, "Tone: ", agent.tone.replace(/[\n\r]/g, " "));
+      writeLine(detailRow + 2, "Style: ", agent.style.replace(/[\n\r]/g, " "));
+      cursor.to(detailRow + 3, dc); write(`${fg.gray}Topics:${style.reset}\x1b[K`);
+      agent.topics.slice(0, 4).forEach((t, i) => {
+        const maxT = lineW - 3;
+        const ct = t.length > maxT ? t.slice(0, maxT - 1) + "…" : t;
+        cursor.to(detailRow + 4 + i, dc + 1);
+        write(`${fg.cyan}• ${fg.white}${ct}${style.reset}\x1b[K`);
+      });
+      writeLine(detailRow + 8, "Submolts: ", agent.submolts.join(", ") || "none");
+      writeLine(detailRow + 9, "Molt ID: ", agent.moltbookAgentId || "unregistered");
     }
   },
 
