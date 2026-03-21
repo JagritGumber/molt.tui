@@ -39,7 +39,7 @@ export const createAgentScreen: Screen = {
 
   render() {
     const { cols } = getTermSize();
-    const w = Math.min(70, cols - 6);
+    const w = cols - 6;
 
     cursor.to(3, 3);
     write(`${fg.brightCyan}${style.bold}Create New Agent${style.reset}`);

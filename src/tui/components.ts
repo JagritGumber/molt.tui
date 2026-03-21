@@ -98,9 +98,9 @@ export function drawTextInput(
   }
 
   if (focused) {
-    write(`${style.underline}${fg.brightWhite}${fitWidth(displayVal, inputWidth)}${style.reset}`);
+    write(`${style.underline}${fg.brightWhite}${fitWidth(displayVal, inputWidth)}${style.reset}\x1b[K`);
   } else {
-    write(`${fg.white}${fitWidth(displayVal || fg.gray + "(empty)", inputWidth)}${style.reset}`);
+    write(`${fg.white}${fitWidth(displayVal || fg.gray + "(empty)", inputWidth)}${style.reset}\x1b[K`);
   }
 }
 

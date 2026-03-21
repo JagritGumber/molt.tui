@@ -43,7 +43,7 @@ export const editAgentScreen: Screen = {
 
   render() {
     const { cols } = getTermSize();
-    const w = Math.min(70, cols - 6);
+    const w = cols - 6;
 
     if (!agent) {
       cursor.to(3, 3);
