@@ -610,7 +610,7 @@ export const tasksScreen: Screen = {
     try {
       const dir = getTasksDir();
       fileWatcher = watch(dir, { persistent: false }, (event, filename) => {
-        if (filename?.endsWith(".json")) {
+        if (filename?.endsWith(".json") && mode === "list") {
           reload();
           app.requestRender();
         }
