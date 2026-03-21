@@ -20,14 +20,7 @@ const SECTIONS: Record<string, Section[]> = {
       ],
     },
   ],
-  dashboard: [
-    {
-      title: "Dashboard",
-      keys: [
-        ["s/a/t/c/q", "press key to navigate"],
-      ],
-    },
-  ],
+  dashboard: [],
   social: [
     {
       title: "Social — Agent Controls",
