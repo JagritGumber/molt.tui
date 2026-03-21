@@ -16,7 +16,8 @@ let scrollOffset = 0;
 let selectedIndex = 0;
 
 // Search / input mode
-let inputMode: "none" | "search" | "branch-name" | "tag-name" | "remote-add" | "reset" = "none";
+let inputMode: "none" | "search" | "branch-name" | "branch-rename" | "tag-name" | "remote-add" | "reset" = "none";
+let renameOldBranch = "";
 let inputValue = "";
 let searchFilter = "";
 
@@ -358,8 +359,8 @@ function renderContent() {
   // Input bar
   if (inputMode !== "none") {
     const labels: Record<string, string> = {
-      search: "Search", "branch-name": "New branch name", "tag-name": "Tag name",
-      "remote-add": "Remote (name url)", reset: "Reset mode (soft/mixed/hard)",
+      search: "Search", "branch-name": "New branch name", "branch-rename": "Rename to",
+      "tag-name": "Tag name", "remote-add": "Remote (name url)", reset: "Reset mode (soft/mixed/hard)",
     };
     cursor.to(rows - 4 - inputH + 1, 3);
     write(`${bg.rgb(30, 30, 50)}${fg.brightCyan}${labels[inputMode] || ""}: ${fg.brightWhite}${inputValue}█${style.reset}\x1b[K`);
@@ -413,24 +414,32 @@ export const gitScreen: Screen = {
     if (inputMode !== "none") {
       if (key.name === "return") {
         const val = inputValue.trim();
+        // Quote user input to prevent shell injection
+        const q = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
+
         if (inputMode === "search") {
           searchFilter = val; loadLog();
         } else if (inputMode === "branch-name" && val) {
           const c = commits[selectedIndex];
           const ref = c ? c.hash : "HEAD";
-          const r = runAction(`git checkout -b ${val} ${ref}`);
+          const r = runAction(`git checkout -b ${q(val)} ${ref}`);
           app.flash(r.split("\n")[0] || `Created ${val}`);
           refresh();
+        } else if (inputMode === "branch-rename" && val) {
+          const r = runAction(`git branch -m ${q(renameOldBranch)} ${q(val)}`);
+          app.flash(r.split("\n")[0] || `Renamed → ${val}`);
+          renameOldBranch = "";
+          loadBranches(); refresh();
         } else if (inputMode === "tag-name" && val) {
           const c = commits[selectedIndex];
           const ref = c ? c.hash : "HEAD";
-          const r = runAction(`git tag ${val} ${ref}`);
+          const r = runAction(`git tag ${q(val)} ${ref}`);
           app.flash(r.split("\n")[0] || `Tagged ${val}`);
           loadTags();
         } else if (inputMode === "remote-add" && val) {
           const [name, url] = val.split(/\s+/);
           if (name && url) {
-            const r = runAction(`git remote add ${name} ${url}`);
+            const r = runAction(`git remote add ${q(name)} ${q(url)}`);
             app.flash(r || `Added ${name}`);
             loadRemotes();
           }
@@ -533,10 +542,8 @@ export const gitScreen: Screen = {
       else if (key.name === "m" && branch && branch !== currentBranch) { app.flash(runAction(`git merge ${branch}`).split("\n")[0] || `Merged ${branch}`); refresh(); app.requestRender(); }
       else if (key.name === "e" && branch && branch !== currentBranch) { app.flash(runAction(`git rebase ${branch}`).split("\n")[0] || `Rebased onto ${branch}`); refresh(); app.requestRender(); }
       else if (key.name === "R" && branch) {
-        inputMode = "branch-name"; inputValue = branch; app.requestRender();
-        // After input, rename
-        const oldInputHandler = inputMode;
-        // We'll handle rename in the input handler by checking if branch exists
+        renameOldBranch = branch;
+        inputMode = "branch-rename"; inputValue = ""; app.requestRender();
       }
     }
 
