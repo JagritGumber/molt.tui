@@ -8,24 +8,20 @@ import { loadConfig } from "../utils/config.ts";
 import type { KeyEvent } from "../tui/input.ts";
 
 interface MenuItem {
-  key: string;       // shortcut key
-  label: string;     // display name
-  target: string;    // screen name or "quit"
+  key: string;
+  label: string;
+  target: string;
   description: string;
-  icon: string;
 }
 
 const MENU: MenuItem[] = [
-  { key: "a", label: "Agents",        target: "agents",   description: "manage AI personalities",  icon: "🤖" },
-  { key: "g", label: "Generate",      target: "generate", description: "create a post with AI",    icon: "✨" },
-  { key: "p", label: "Post",          target: "post",     description: "publish to moltbook",      icon: "📤" },
-  { key: "t", label: "Tasks",         target: "tasks",    description: "plan and track work",       icon: "📋" },
-  { key: "f", label: "Feed",          target: "feed",     description: "browse moltbook posts",    icon: "📰" },
-  { key: "s", label: "Settings",      target: "settings", description: "API keys & preferences",   icon: "⚙" },
-  { key: "q", label: "Quit",          target: "quit",     description: "exit molt.tui",             icon: "👋" },
+  { key: "s", label: "Social",   target: "social",   description: "autonomous moltbook agent" },
+  { key: "a", label: "Agents",   target: "agents",   description: "manage AI personalities" },
+  { key: "t", label: "Tasks",    target: "tasks",    description: "plan and track work" },
+  { key: "c", label: "Settings", target: "settings", description: "API keys & preferences" },
+  { key: "q", label: "Quit",     target: "quit",     description: "exit molt.tui" },
 ];
 
-// Build a keymap for instant lookup
 const KEYMAP = new Map(MENU.map((m) => [m.key, m]));
 
 export const dashboardScreen: Screen = {
@@ -47,7 +43,7 @@ export const dashboardScreen: Screen = {
     cursor.to(logoRow + 2, 3);
     write(`${fg.brightCyan}${style.bold}  ╩ ╩╚═╝╩═╝ ╩${style.reset} ${fg.brightMagenta}${style.bold}·${style.reset} ${fg.brightCyan}${style.bold}╩ ╚═╝╩${style.reset}`);
     cursor.to(logoRow + 3, 3);
-    write(`${fg.gray}  agent management for moltbook${style.reset}`);
+    write(`${fg.gray}  your autonomous workspace${style.reset}`);
 
     // Status badges
     const statusRow = logoRow + 5;
@@ -59,17 +55,14 @@ export const dashboardScreen: Screen = {
 
     drawHR(statusRow + 1, 3, w);
 
-    // Neovim-style menu
+    // Menu
     const menuRow = statusRow + 3;
     MENU.forEach((item, i) => {
       if (menuRow + i >= rows - 2) return;
       cursor.to(menuRow + i, 5);
-
-      // Highlighted shortcut key like neovim
       const keyBadge = `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} ${item.key} ${style.reset}`;
       const label = `${fg.brightWhite}${style.bold} ${item.label}${style.reset}`;
       const desc = `${fg.gray} ${item.description}${style.reset}`;
-
       write(`${keyBadge}${label}${desc}\x1b[K`);
     });
   },
