@@ -38,6 +38,8 @@ let homeCheckInFlight = false;
 interface HomeData {
   your_account?: { karma?: number; unread_notification_count?: number };
   activity_on_your_posts?: Array<{ post_id: string; post_title: string }>;
+  your_direct_messages?: { pending_request_count?: number; unread_message_count?: number };
+  posts_from_accounts_you_follow?: MoltbookPost[];
 }
 let homeData: HomeData | null = null;
 
@@ -60,6 +62,27 @@ let learningContext = "";
 // engagedPostIds evicts oldest to keep memory bounded (re-engage is harmless)
 const repliedCommentIds = new Set<string>();
 const engagedPostIds = new Set<string>();
+const followedAgents = new Set<string>();
+const subscribedSubmolts = new Set<string>();
+
+// #6 Post variety — track recent topics to avoid repeats
+const recentPostTopics: string[] = [];
+const MAX_RECENT_TOPICS = 10;
+
+// #9 Engagement analytics
+interface AgentStats {
+  postsCreated: number;
+  commentsWritten: number;
+  upvotesGiven: number;
+  repliesSent: number;
+  followsMade: number;
+  karmaHistory: Array<{ time: string; karma: number }>;
+}
+let stats: AgentStats = { postsCreated: 0, commentsWritten: 0, upvotesGiven: 0, repliesSent: 0, followsMade: 0, karmaHistory: [] };
+
+// #10 Post approval mode
+let approvalMode = false;
+let pendingPost: { title: string; content: string; submolt: string } | null = null;
 
 function evictOldest(set: Set<string>, max: number, keepLast: number) {
   if (set.size > max) {
@@ -189,22 +212,33 @@ async function loadFeed() {
   app.requestRender();
 }
 
+// #7 Better My Posts — try getProfile first, fall back to search
 async function loadMyPosts() {
   const client = getClient();
   if (!client || myPostsLoading || !activeAgent) return;
   myPostsLoading = true;
   app.requestRender();
   try {
-    const result = await client.search(activeAgent.name, "posts", 20);
-    const allPosts: MoltbookPost[] = result?.posts || result?.results || result?.data || [];
-    const name = activeAgent.name.toLowerCase();
-    myPosts = allPosts.filter((p) => getAuthorName(p).toLowerCase() === name);
-    if (myPosts.length === 0 && allPosts.length > 0) {
-      log("posts", "author filter miss — may include others", "pending");
-      myPosts = allPosts;
+    // Primary: getProfile returns agent's own posts
+    const profile = await client.getProfile(activeAgent.name).catch(() => null);
+    const profilePosts: MoltbookPost[] = profile?.posts || profile?.agent?.posts || [];
+    if (profilePosts.length > 0) {
+      myPosts = profilePosts;
+      myPostIdx = 0;
+      log("posts", `found ${myPosts.length} posts (profile)`);
+    } else {
+      // Fallback: search by name with author filter
+      const result = await client.search(activeAgent.name, "posts", 20);
+      const allPosts: MoltbookPost[] = result?.posts || result?.results || result?.data || [];
+      const name = activeAgent.name.toLowerCase();
+      myPosts = allPosts.filter((p) => getAuthorName(p).toLowerCase() === name);
+      if (myPosts.length === 0 && allPosts.length > 0) {
+        log("posts", "author filter miss — may include others", "pending");
+        myPosts = allPosts;
+      }
+      myPostIdx = 0;
+      log("posts", `found ${myPosts.length} posts (search)`);
     }
-    myPostIdx = 0;
-    log("posts", `found ${myPosts.length} posts`);
   } catch (err) {
     log("posts", errMsg(err), "fail");
     myPosts = [];
@@ -215,6 +249,58 @@ async function loadMyPosts() {
 
 // ── Autonomous Agent Actions ──
 
+// #1 Auto-follow agents we engage with
+async function autoFollow(client: MoltbookClient, agentName: string) {
+  if (agentName === activeAgent?.name || agentName === "unknown") return;
+  if (followedAgents.has(agentName)) return;
+  try {
+    await client.follow(agentName);
+    followedAgents.add(agentName);
+    stats.followsMade++;
+    log("follow", `followed ${agentName}`);
+  } catch {
+    // Already following or invalid — silently skip
+    followedAgents.add(agentName); // mark so we don't retry
+  }
+}
+
+// #2 Subscribe to relevant submolts
+async function autoSubscribe(client: MoltbookClient) {
+  if (!activeAgent) return;
+  // Subscribe to agent's configured submolts
+  for (const sub of activeAgent.submolts) {
+    if (subscribedSubmolts.has(sub)) continue;
+    try {
+      await client.subscribe(sub);
+      subscribedSubmolts.add(sub);
+      log("sub", `subscribed to m/${sub}`);
+    } catch {
+      subscribedSubmolts.add(sub); // already subscribed or invalid
+    }
+  }
+  // Discover new submolts matching agent's topics
+  try {
+    const result = await client.getSubmolts();
+    const submolts: Array<{ name: string; description?: string }> = result?.submolts || result?.data || [];
+    for (const sub of submolts) {
+      if (subscribedSubmolts.has(sub.name)) continue;
+      const desc = `${sub.name} ${sub.description || ""}`.toLowerCase();
+      const matches = cachedTopics.some(t => desc.includes(t));
+      if (matches) {
+        try {
+          await client.subscribe(sub.name);
+          subscribedSubmolts.add(sub.name);
+          log("sub", `discovered & subscribed m/${sub.name}`);
+        } catch {
+          subscribedSubmolts.add(sub.name);
+        }
+      }
+    }
+  } catch (err) {
+    log("sub", errMsg(err), "fail");
+  }
+}
+
 async function checkHome() {
   const client = getClient();
   if (!client) { log("home", "no API key", "fail"); return; }
@@ -224,7 +310,20 @@ async function checkHome() {
     homeData = await client.getHome();
     lastCheck = new Date().toLocaleTimeString("en-US", { hour12: false });
     const notifs = homeData?.your_account?.unread_notification_count || 0;
-    log("home", `${notifs} notifications`);
+    const dms = homeData?.your_direct_messages?.unread_message_count || 0;
+    log("home", `${notifs} notifs${dms > 0 ? `, ${dms} DMs` : ""}`);
+
+    // #9 Track karma history
+    if (homeData?.your_account?.karma != null) {
+      const now = new Date().toLocaleTimeString("en-US", { hour12: false });
+      stats.karmaHistory.push({ time: now, karma: homeData.your_account.karma });
+      if (stats.karmaHistory.length > 50) stats.karmaHistory.shift();
+    }
+
+    // #3 DM awareness — log unread DMs for visibility
+    if (dms > 0) {
+      log("dm", `${dms} unread DMs (view on moltbook.com)`, "pending");
+    }
 
     if (homeData?.activity_on_your_posts?.length) {
       const seenPosts = new Set<string>();
@@ -235,7 +334,7 @@ async function checkHome() {
       }
     }
     if (notifs > 0) {
-      try { await client.markAllRead(); } catch (err) {
+      try { await client.markAllRead(); } catch {
         log("home", "markAllRead failed (non-fatal)", "fail");
       }
     }
@@ -269,13 +368,18 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
       ], { maxTokens: 150 });
       await client.addComment(activity.post_id, reply, comment.id);
       repliedCommentIds.add(comment.id); // only after success — never evicted
+      stats.repliesSent++;
       log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
+
+      // #1 Auto-follow the commenter
+      autoFollow(client, authorName).catch(() => {});
     } catch (err) {
       log("reply", errMsg(err), "fail");
     }
   }
 }
 
+// #10 Post approval — generates draft, waits for user Y/N
 async function autoPost() {
   const zai = getZai();
   const client = getClient();
@@ -284,23 +388,50 @@ async function autoPost() {
 
   try {
     log("post", "generating...", "pending");
-    const content = await zai.generatePost(persona);
-    const title = await zai.generatePostTitle(content);
-    log("post", `draft: "${title.slice(0, 40)}"`, "pending");
 
-    const result = await client.createPost({
-      submolt_name: activeAgent?.submolts[0] || "general",
-      title,
-      content,
-    });
-
-    if (result?.verification_required && result?.post?.verification) {
-      await handleVerification(client, result.post.verification);
+    // #6 Post variety — pick a topic avoiding recent ones
+    let topicHint: string | undefined;
+    if (activeAgent && activeAgent.topics.length > 1) {
+      const available = activeAgent.topics.filter(t =>
+        !recentPostTopics.some(r => r.toLowerCase() === t.toLowerCase())
+      );
+      if (available.length > 0) {
+        topicHint = available[Math.floor(Math.random() * available.length)];
+      }
     }
-    log("post", `published: "${title.slice(0, 40)}"`);
+
+    const content = await zai.generatePost(persona, topicHint);
+    const title = await zai.generatePostTitle(content);
+    const submolt = activeAgent?.submolts[Math.floor(Math.random() * (activeAgent?.submolts.length || 1))] || "general";
+
+    // #10 If approval mode, queue for user review
+    if (approvalMode) {
+      pendingPost = { title, content, submolt };
+      log("post", `draft ready — Y approve, N reject`, "pending");
+      app.requestRender();
+      return;
+    }
+
+    await publishPost(client, title, content, submolt);
   } catch (err) {
     log("post", errMsg(err), "fail");
   }
+}
+
+async function publishPost(client: MoltbookClient, title: string, content: string, submolt: string) {
+  log("post", `draft: "${title.slice(0, 40)}"`, "pending");
+  const result = await client.createPost({ submolt_name: submolt, title, content });
+
+  if (result?.verification_required && result?.post?.verification) {
+    await handleVerification(client, result.post.verification);
+  }
+
+  stats.postsCreated++;
+  // #6 Track topic to avoid repeating
+  recentPostTopics.push(title.toLowerCase());
+  if (recentPostTopics.length > MAX_RECENT_TOPICS) recentPostTopics.shift();
+
+  log("post", `published: "${title.slice(0, 40)}"`);
 }
 
 async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }) {
@@ -320,6 +451,7 @@ async function handleVerification(client: MoltbookClient, verification: { challe
   }
 }
 
+// #4 Smarter engagement — prefer relevant posts over random
 async function autoEngage() {
   const client = getClient();
   const zai = getZai();
@@ -334,26 +466,38 @@ async function autoEngage() {
     const candidates = posts.filter((p) => !engagedPostIds.has(p.id));
     if (candidates.length === 0) return;
 
-    const post = candidates[Math.floor(Math.random() * Math.min(5, candidates.length))]!;
+    // #4 Prefer relevant posts — sort relevant to front, then pick from top 5
+    const sorted = [...candidates].sort((a, b) => {
+      const aRel = isRelevant(a) ? 1 : 0;
+      const bRel = isRelevant(b) ? 1 : 0;
+      return bRel - aRel;
+    });
+    const post = sorted[Math.floor(Math.random() * Math.min(5, sorted.length))]!;
 
     engagedPostIds.add(post.id);
     evictOldest(engagedPostIds, 200, 100);
 
     try {
       await client.upvote(post.id);
+      stats.upvotesGiven++;
       log("upvote", `↑ ${getAuthorName(post)}: "${(post.title || "").slice(0, 30)}"`);
     } catch (err) {
       log("upvote", errMsg(err), "fail");
     }
 
-    // Comment (30% chance)
-    if (Math.random() < 0.3) {
-      const author = getAuthorName(post);
+    // #1 Auto-follow the post author
+    const author = getAuthorName(post);
+    autoFollow(client, author).catch(() => {});
+
+    // Comment — higher chance (50%) on relevant posts, 20% otherwise
+    const commentChance = isRelevant(post) ? 0.5 : 0.2;
+    if (Math.random() < commentChance) {
       const comment = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Comment briefly, add value. Just the text.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post by ${author}: <post_title>${post.title}</post_title>\n<post_content>${(post.content || "").slice(0, 300)}</post_content>\n\nWrite your comment:` },
       ], { maxTokens: 150 });
       await client.addComment(post.id, comment);
+      stats.commentsWritten++;
       log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
     }
   } catch (err) {
@@ -361,23 +505,57 @@ async function autoEngage() {
   }
 }
 
+// #11 Profile sync — update Moltbook bio when agent personality changes
+async function syncProfile() {
+  const client = getClient();
+  if (!client || !activeAgent) return;
+  try {
+    const bio = `${activeAgent.bio}\n\nTopics: ${activeAgent.topics.join(", ")}`;
+    await client.updateMe({ description: bio });
+    log("profile", `synced bio for ${activeAgent.name}`);
+  } catch (err) {
+    log("profile", errMsg(err), "fail");
+  }
+}
+
 // ── Agent Control ──
+
+// #5 Configurable intervals (minutes)
+const INTERVALS = {
+  heartbeat: 5,  // minutes between home checks
+  engageEvery: 2, // every N heartbeats
+  postEvery: 6,   // every N heartbeats
+};
 
 function startAgent() {
   if (isRunning || !activeAgent) return;
   isRunning = true;
   log("agent", `started: ${activeAgent.name}`);
   reloadClients();
+
+  // Ensure topic cache is warm for isRelevant
+  if (activeAgent.id !== cachedTopicsAgentId) {
+    cachedTopics = activeAgent.topics.map(t => t.toLowerCase());
+    cachedTopicsAgentId = activeAgent.id;
+  }
+
   checkHome().catch(() => {});
   loadFeed().catch(() => {});
+
+  // #2 Subscribe to relevant submolts on start
+  const client = getClient();
+  if (client) autoSubscribe(client).catch(() => {});
+
+  // #11 Sync profile on start
+  syncProfile().catch(() => {});
 
   let tick = 0;
   heartbeatTimer = setInterval(async () => {
     tick++;
     await checkHome().catch(() => {});
-    if (tick % 2 === 0) await autoEngage().catch(() => {});
-    if (tick % 6 === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); }
-  }, 5 * 60 * 1000);
+    if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {});
+    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); }
+  }, INTERVALS.heartbeat * 60 * 1000);
   app.requestRender();
 }
 
@@ -396,7 +574,9 @@ const ACTION_COLORS: Record<string, string> = {
   post: fg.brightMagenta, reply: fg.brightCyan, comment: fg.brightBlue,
   upvote: fg.brightGreen, engage: fg.brightYellow, home: fg.gray,
   agent: fg.brightWhite, verify: fg.brightYellow, feed: fg.brightBlue,
-  posts: fg.brightMagenta, learn: fg.brightYellow,
+  posts: fg.brightMagenta, learn: fg.brightYellow, follow: fg.brightGreen,
+  sub: fg.brightBlue, dm: fg.brightCyan, profile: fg.brightMagenta,
+  stats: fg.brightWhite,
 };
 
 
@@ -419,7 +599,8 @@ function renderLeft(w: number, maxRows: number) {
   cursor.to(row, 2);
   if (activeAgent) {
     const status = isRunning ? `${fg.brightGreen}● running` : `${fg.gray}○ stopped`;
-    writeClipped(`${fg.brightCyan}${style.bold}Social  ${style.reset}${fg.brightWhite}${activeAgent.name} ${status}`, maxCol, 2);
+    const approval = approvalMode ? ` ${fg.brightYellow}[review]` : "";
+    writeClipped(`${fg.brightCyan}${style.bold}Social  ${style.reset}${fg.brightWhite}${activeAgent.name} ${status}${approval}`, maxCol, 2);
   } else {
     writeClipped(`${fg.brightCyan}${style.bold}Social  ${style.reset}${fg.gray}no agent`, maxCol, 2);
   }
@@ -430,7 +611,9 @@ function renderLeft(w: number, maxRows: number) {
   if (homeData?.your_account) {
     const a = homeData.your_account;
     const notifCount = a.unread_notification_count || 0;
-    writeClipped(`${fg.gray}karma ${fg.brightWhite}${a.karma || 0}${fg.gray} · notifs ${notifCount > 0 ? fg.brightYellow : fg.gray}${notifCount}${fg.gray} · ${lastCheck || "—"}`, maxCol, 2);
+    const dms = homeData?.your_direct_messages?.unread_message_count || 0;
+    const dmBadge = dms > 0 ? ` · ${fg.brightCyan}DM ${dms}` : "";
+    writeClipped(`${fg.gray}karma ${fg.brightWhite}${a.karma || 0}${fg.gray} · notifs ${notifCount > 0 ? fg.brightYellow : fg.gray}${notifCount}${dmBadge}${fg.gray} · ${lastCheck || "—"}`, maxCol, 2);
   } else {
     writeClipped(`${fg.gray}press S to start agent`, maxCol, 2);
   }
@@ -439,11 +622,40 @@ function renderLeft(w: number, maxRows: number) {
   // Controls
   cursor.to(row, 2);
   const sKey = isRunning ? `${fg.brightRed}S${fg.gray}top` : `${fg.brightGreen}S${fg.gray}tart`;
-  writeClipped(`${fg.gray}${sKey} · ${fg.brightCyan}P${fg.gray}ost · ${fg.brightCyan}E${fg.gray}ngage · ${fg.brightCyan}H${fg.gray}ome · ${fg.brightCyan}Tab${fg.gray} panel`, maxCol, 2);
+  writeClipped(`${fg.gray}${sKey} · ${fg.brightCyan}P${fg.gray}ost · ${fg.brightCyan}E${fg.gray}ngage · ${fg.brightCyan}H${fg.gray}ome · ${fg.brightCyan}Tab${fg.gray} panel · ${fg.brightYellow}V${fg.gray}${approvalMode ? "auto" : "review"}`, maxCol, 2);
   row++;
+
+  // #9 Quick stats bar
+  if (stats.postsCreated + stats.commentsWritten + stats.upvotesGiven > 0) {
+    cursor.to(row, 2);
+    const karmaDelta = stats.karmaHistory.length >= 2
+      ? stats.karmaHistory[stats.karmaHistory.length - 1]!.karma - stats.karmaHistory[0]!.karma
+      : 0;
+    const deltaStr = karmaDelta > 0 ? `${fg.brightGreen}+${karmaDelta}` : karmaDelta < 0 ? `${fg.brightRed}${karmaDelta}` : "";
+    writeClipped(`${fg.gray}📊 ${stats.postsCreated}p ${stats.commentsWritten}c ${stats.upvotesGiven}↑ ${stats.repliesSent}r ${stats.followsMade}f${deltaStr ? ` ${deltaStr}${fg.gray}Δ` : ""}`, maxCol, 2);
+    row++;
+  }
 
   drawHR(row, 2, Math.max(0, w - 2));
   row++;
+
+  // Pending post approval
+  if (pendingPost) {
+    cursor.to(row, 2);
+    writeClipped(`${bg.rgb(40, 30, 10)}${fg.brightYellow}${style.bold} PENDING POST${style.reset}`, maxCol, 2);
+    row++;
+    cursor.to(row, 3);
+    writeClipped(`${fg.brightWhite}${pendingPost.title.slice(0, maxCol - 6)}`, maxCol, 3);
+    row++;
+    cursor.to(row, 3);
+    writeClipped(`${fg.gray}${pendingPost.content.replace(/[\n\r]/g, " ").slice(0, maxCol - 6)}`, maxCol, 3);
+    row++;
+    cursor.to(row, 3);
+    writeClipped(`${fg.gray}→ m/${pendingPost.submolt}  ${fg.brightGreen}Y${fg.gray} publish · ${fg.brightRed}N${fg.gray} discard`, maxCol, 3);
+    row++;
+    drawHR(row, 2, Math.max(0, w - 2));
+    row++;
+  }
 
   // View header
   cursor.to(row, 2);
@@ -641,7 +853,7 @@ function renderRight(startCol: number, w: number, maxRows: number) {
 
 export const socialScreen: Screen = {
   name: "social",
-  statusHint: "S start/stop · P post · E engage · H home · Tab panel · T teach · q quit",
+  statusHint: "S start/stop · P post · E engage · H home · Tab panel · T teach · V review · q quit",
   get handlesTextInput() { return learningMode; },
 
   onEnter() {
@@ -669,6 +881,24 @@ export const socialScreen: Screen = {
   },
 
   onKey(key: KeyEvent) {
+    // #10 Post approval handling — Y/N when pending
+    if (pendingPost) {
+      if (key.name === "y" || key.name === "Y") {
+        const post = pendingPost;
+        pendingPost = null;
+        const client = getClient();
+        if (client) publishPost(client, post.title, post.content, post.submolt).catch(() => {});
+        app.requestRender();
+        return;
+      }
+      if (key.name === "n" || key.name === "N") {
+        log("post", `rejected: "${pendingPost.title.slice(0, 30)}"`, "pending");
+        pendingPost = null;
+        app.requestRender();
+        return;
+      }
+    }
+
     if (learningMode) {
       if (key.name === "escape") {
         learningMode = false;
@@ -728,6 +958,14 @@ export const socialScreen: Screen = {
     if (key.name === "r" || key.name === "R") {
       if (view === "home") loadFeed().catch(() => {});
       else loadMyPosts().catch(() => {});
+      return;
+    }
+
+    // #10 Toggle approval mode
+    if (key.name === "v" || key.name === "V") {
+      approvalMode = !approvalMode;
+      log("agent", approvalMode ? "review mode ON — posts need approval" : "review mode OFF — auto-publish");
+      app.requestRender();
       return;
     }
 
