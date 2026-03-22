@@ -1273,6 +1273,7 @@ export const socialScreen: Screen = {
           log("post", `discarded draft on agent switch: "${pendingPost.title.slice(0, 30)}"`, "pending");
           pendingPost = null;
         }
+        if (pendingTweet) { pendingTweet = null; }
         // Don't clear repliedCommentIds — all agents share the same Moltbook account
         // Don't clear engagedPostIds — re-commenting from same account is undesirable
         // stats accumulates across agents (lifetime totals) — intentional
