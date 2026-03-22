@@ -1099,11 +1099,15 @@ export const socialScreen: Screen = {
     }
     reloadClients();
     if (feedPosts.length === 0 && activeAgent) loadFeed().catch(() => {});
-    // Check bird CLI availability for Twitter drafts
+    // Check bird CLI availability for Twitter drafts (async to avoid blocking)
     if (!twitterReady) {
-      const check = birdCheck();
-      twitterReady = check.ok;
-      if (check.ok) log("tweet", `bird connected: @${check.user}`, "ok");
+      setTimeout(() => {
+        try {
+          const check = birdCheck();
+          twitterReady = check.ok;
+          if (check.ok) log("tweet", `bird connected: @${check.user}`, "ok");
+        } catch { /* bird not installed or not configured */ }
+      }, 0);
     }
   },
 
@@ -1115,6 +1119,7 @@ export const socialScreen: Screen = {
       log("post", `discarded draft on leave: "${pendingPost.title.slice(0, 30)}"`, "pending");
       pendingPost = null;
     }
+    if (pendingTweet) { pendingTweet = null; }
   },
 
   render() {
@@ -1173,7 +1178,7 @@ export const socialScreen: Screen = {
       if (key.name === "y" || key.name === "Y") {
         const tweet = pendingTweet;
         pendingTweet = null;
-        postTweet(tweet).catch(() => {});
+        postTweet(tweet).catch((err) => { log("tweet", errMsg(err), "fail"); });
         app.requestRender();
         return;
       }
