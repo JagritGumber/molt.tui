@@ -65,9 +65,12 @@ const engagedPostIds = new Set<string>();
 const followedAgents = new Set<string>();
 const subscribedSubmolts = new Set<string>();
 
-// #6 Post variety — track recent topics to avoid repeats
-const recentPostTopics: string[] = [];
+// #6 Post variety — track recent topics to avoid repeats (cleared on agent switch)
+let recentPostTopics: string[] = [];
 const MAX_RECENT_TOPICS = 10;
+
+// #11 Track which agents have had their profile synced this session
+const profileSyncedAgents = new Set<string>();
 
 // #9 Engagement analytics
 interface AgentStats {
@@ -278,24 +281,24 @@ async function autoSubscribe(client: MoltbookClient) {
       subscribedSubmolts.add(sub); // already subscribed or invalid
     }
   }
-  // Discover new submolts matching agent's topics
+  // Discover new submolts matching agent's topics (word-boundary match)
   try {
     const result = await client.getSubmolts();
     const submolts: Array<{ name: string; description?: string }> = result?.submolts || result?.data || [];
-    for (const sub of submolts) {
-      if (subscribedSubmolts.has(sub.name)) continue;
-      const desc = `${sub.name} ${sub.description || ""}`.toLowerCase();
-      const matches = cachedTopics.some(t => desc.includes(t));
-      if (matches) {
-        try {
-          await client.subscribe(sub.name);
-          subscribedSubmolts.add(sub.name);
-          log("sub", `discovered & subscribed m/${sub.name}`);
-        } catch {
-          subscribedSubmolts.add(sub.name);
-        }
-      }
-    }
+    const toSubscribe = submolts.filter(sub => {
+      if (subscribedSubmolts.has(sub.name)) return false;
+      const desc = ` ${sub.name} ${sub.description || ""} `.toLowerCase();
+      return cachedTopics.some(t => {
+        const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
+        return re.test(desc);
+      });
+    });
+    const results = await Promise.allSettled(
+      toSubscribe.map(sub => client.subscribe(sub.name).then(() => {
+        subscribedSubmolts.add(sub.name);
+        log("sub", `discovered & subscribed m/${sub.name}`);
+      }).catch(() => { subscribedSubmolts.add(sub.name); }))
+    );
   } catch (err) {
     log("sub", errMsg(err), "fail");
   }
@@ -505,13 +508,15 @@ async function autoEngage() {
   }
 }
 
-// #11 Profile sync — update Moltbook bio when agent personality changes
+// #11 Profile sync — update Moltbook bio once per agent per session
 async function syncProfile() {
   const client = getClient();
   if (!client || !activeAgent) return;
+  if (profileSyncedAgents.has(activeAgent.id)) return;
   try {
     const bio = `${activeAgent.bio}\n\nTopics: ${activeAgent.topics.join(", ")}`;
     await client.updateMe({ description: bio });
+    profileSyncedAgents.add(activeAgent.id);
     log("profile", `synced bio for ${activeAgent.name}`);
   } catch (err) {
     log("profile", errMsg(err), "fail");
@@ -874,6 +879,11 @@ export const socialScreen: Screen = {
   onLeave() {
     // Agent keeps running in background but we stop rendering
     // Timer callbacks only log + mutate state, render is gated by active screen
+    // Clear pending post so stale drafts don't surprise on re-entry
+    if (pendingPost) {
+      log("post", `discarded draft on leave: "${pendingPost.title.slice(0, 30)}"`, "pending");
+      pendingPost = null;
+    }
   },
 
   render() {
@@ -961,9 +971,13 @@ export const socialScreen: Screen = {
       return;
     }
 
-    // #10 Toggle approval mode
+    // #10 Toggle approval mode — clear pending draft when turning off
     if (key.name === "v" || key.name === "V") {
       approvalMode = !approvalMode;
+      if (!approvalMode && pendingPost) {
+        log("post", `discarded draft: "${pendingPost.title.slice(0, 30)}"`, "pending");
+        pendingPost = null;
+      }
       log("agent", approvalMode ? "review mode ON — posts need approval" : "review mode OFF — auto-publish");
       app.requestRender();
       return;
@@ -992,8 +1006,10 @@ export const socialScreen: Screen = {
         agentSelectIdx = (agentSelectIdx + 1) % agents.length;
         activeAgent = agents[agentSelectIdx]!;
         cachedTopicsAgentId = null;
+        recentPostTopics = []; // new agent = fresh topic rotation
         // Don't clear repliedCommentIds — all agents share the same Moltbook account
         // Don't clear engagedPostIds — re-commenting from same account is undesirable
+        // stats accumulates across agents (lifetime totals) — intentional
         reloadClients();
         log("agent", `switched to ${activeAgent.name}`);
         if (wasRunning) startAgent();
