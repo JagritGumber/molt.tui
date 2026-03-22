@@ -385,8 +385,8 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
         { role: "user", content: `Post: <post>${activity.post_title}</post>\nComment by ${authorName}: <comment>${comment.content}</comment>\n\nWrite your reply:` },
       ], { maxTokens: 150 });
       const ok = await postComment(client, activity.post_id, reply, comment.id);
+      repliedCommentIds.add(comment.id); // track even on verification failure — comment was submitted to API
       if (!ok) continue;
-      repliedCommentIds.add(comment.id); // only after success — never evicted
       stats.repliesSent++;
       log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
 
@@ -457,7 +457,7 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
 
   if (result?.verification_required && result?.post?.verification) {
     const ok = await handleVerification(client, result.post.verification);
-    if (!ok) { log("post", "verification failed — post may be hidden/spam", "fail"); return; }
+    if (!ok) { log("post", "verification failed — post may be hidden/spam", "fail"); markPosted(); return; }
   }
 
   stats.postsCreated++;
@@ -479,12 +479,23 @@ async function handleVerification(client: MoltbookClient, verification: { challe
   try {
     const challenge = verification.challenge_text;
     if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return false; }
-    const answer = await zai.chatCompletion([
+    const raw = await zai.chatCompletion([
       { role: "system", content: "Solve this obfuscated math problem. Respond with ONLY the numeric answer with 2 decimal places. Nothing else." },
       { role: "user", content: challenge },
     ], { maxTokens: 20 });
-    await client.verify(verification.verification_code, answer.trim());
-    log("verify", `solved: ${answer.trim()}`);
+    // Validate answer format — must be a number with exactly 2 decimal places
+    // Invalid format wastes a verification attempt (10 failures = suspension)
+    const answer = raw.trim().replace(/[^0-9.\-]/g, "");
+    if (!/^-?\d+\.\d{2}$/.test(answer)) {
+      const fixed = parseFloat(answer);
+      if (isNaN(fixed)) { log("verify", `LLM gave non-numeric: "${raw.trim()}"`, "fail"); return false; }
+      const formatted = fixed.toFixed(2);
+      await client.verify(verification.verification_code, formatted);
+      log("verify", `solved: ${formatted} (fixed from "${raw.trim()}")`);
+    } else {
+      await client.verify(verification.verification_code, answer);
+      log("verify", `solved: ${answer}`);
+    }
     return true;
   } catch (err) {
     log("verify", errMsg(err), "fail");
@@ -499,12 +510,12 @@ async function postComment(client: MoltbookClient, postId: string, content: stri
     return false;
   }
   const result = await client.addComment(postId, content, parentId);
-  markCommented();
-  // Handle verification if required
+  // Handle verification if required — must verify BEFORE marking as commented
   if (result?.verification_required && result?.comment?.verification) {
     const ok = await handleVerification(client, result.comment.verification);
     if (!ok) { log("verify", "comment verification failed — may be hidden", "fail"); return false; }
   }
+  markCommented(); // only after confirmed success
   return true;
 }
 
