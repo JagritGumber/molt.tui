@@ -861,7 +861,8 @@ function renderRight(startCol: number, w: number, maxRows: number) {
       continue;
     }
     const entry = activityLog[idx]!;
-    const icon = entry.status === "ok" ? `${fg.brightGreen}✓` : entry.status === "fail" ? `${fg.brightRed}✗` : `${fg.brightYellow}◑`;
+    // ASCII icons — Unicode ✓/✗/◑ are ambiguous-width and overflow in some terminals
+    const icon = entry.status === "ok" ? `${fg.brightGreen}+` : entry.status === "fail" ? `${fg.brightRed}!` : `${fg.brightYellow}~`;
     const color = ACTION_COLORS[entry.action] || fg.gray;
     const detail = entry.detail.slice(0, w - 16);
     writeClipped(` ${fg.gray}${entry.time} ${icon}${color} ${entry.action.slice(0, 5)}${style.reset} ${fg.white}${detail}`, maxCol, startCol);

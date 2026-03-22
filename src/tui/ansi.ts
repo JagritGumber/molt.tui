@@ -101,9 +101,12 @@ function charWidth(cp: number): number {
     (cp >= 0xE0100 && cp <= 0xE01EF) || // variation selectors supplement
     cp === 0xFEFF // BOM
   ) return 0;
-  // Wide characters: CJK, fullwidth, emoji, etc.
+  // Wide characters: CJK, fullwidth, emoji, ambiguous-width symbols
   if (
     (cp >= 0x1100 && cp <= 0x115F) || // Hangul Jamo
+    (cp >= 0x25A0 && cp <= 0x25FF) || // Geometric Shapes (▸, ◑, etc.) — ambiguous width
+    (cp >= 0x2600 && cp <= 0x26FF) || // Miscellaneous Symbols (★, etc.)
+    (cp >= 0x2700 && cp <= 0x27BF) || // Dingbats (✓, ✗, etc.)
     (cp >= 0x2E80 && cp <= 0x303E) || // CJK radicals, ideographic desc
     (cp >= 0x3041 && cp <= 0x33BF) || // Hiragana, Katakana, CJK compat
     (cp >= 0x3400 && cp <= 0x4DBF) || // CJK Unified ext A
