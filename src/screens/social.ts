@@ -887,7 +887,7 @@ export const socialScreen: Screen = {
         const post = pendingPost;
         pendingPost = null;
         const client = getClient();
-        if (client) publishPost(client, post.title, post.content, post.submolt).catch(() => {});
+        if (client) publishPost(client, post.title, post.content, post.submolt).catch((err) => { log("post", errMsg(err), "fail"); });
         app.requestRender();
         return;
       }
