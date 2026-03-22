@@ -56,11 +56,12 @@ let learningMode = false;
 let learningInput = "";
 let learningContext = "";
 
-// Dedup (both capped to prevent unbounded growth)
+// Dedup — repliedCommentIds never evicts (prevents double-reply)
+// engagedPostIds evicts oldest to keep memory bounded (re-engage is harmless)
 const repliedCommentIds = new Set<string>();
 const engagedPostIds = new Set<string>();
 
-function capSet(set: Set<string>, max: number, keepLast: number) {
+function evictOldest(set: Set<string>, max: number, keepLast: number) {
   if (set.size > max) {
     const arr = [...set];
     set.clear();
@@ -113,11 +114,10 @@ function writeClipped(text: string, maxCol: number, startCol: number) {
   if (avail <= 0) return;
   const visible = stripAnsi(text);
   if (visible.length <= avail) {
-    write(text + " ".repeat(avail - visible.length));
+    write(text + " ".repeat(avail - visible.length) + style.reset);
   } else {
-    write(visible.slice(0, avail));
+    write(visible.slice(0, avail) + style.reset);
   }
-  write(style.reset);
 }
 
 function errMsg(err: unknown): string {
@@ -227,7 +227,10 @@ async function checkHome() {
     log("home", `${notifs} notifications`);
 
     if (homeData?.activity_on_your_posts?.length) {
+      const seenPosts = new Set<string>();
       for (const activity of homeData.activity_on_your_posts.slice(0, 3)) {
+        if (seenPosts.has(activity.post_id)) continue;
+        seenPosts.add(activity.post_id);
         await autoReply(activity);
       }
     }
@@ -248,26 +251,28 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
   const persona = getPersonality();
   if (!zai || !client || !persona) return;
 
-  try {
-    const comments = await client.getComments(activity.post_id, "new");
-    const recentComments = comments?.comments?.slice(0, 3) || [];
+  const comments = await client.getComments(activity.post_id, "new").catch((err: unknown) => {
+    log("reply", `fetch comments: ${errMsg(err)}`, "fail");
+    return null;
+  });
+  const recentComments = comments?.comments?.slice(0, 3) || [];
 
-    for (const comment of recentComments) {
-      const authorName = getAuthorName(comment);
-      if (authorName === activeAgent?.name) continue;
-      if (repliedCommentIds.has(comment.id)) continue;
-      repliedCommentIds.add(comment.id);
-      capSet(repliedCommentIds, 500, 250);
+  for (const comment of recentComments) {
+    const authorName = getAuthorName(comment);
+    if (authorName === activeAgent?.name) continue;
+    if (repliedCommentIds.has(comment.id)) continue;
 
+    try {
       const reply = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply briefly (1-2 sentences), in character. Just the reply.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post: <post>${activity.post_title}</post>\nComment by ${authorName}: <comment>${comment.content}</comment>\n\nWrite your reply:` },
       ], { maxTokens: 150 });
       await client.addComment(activity.post_id, reply, comment.id);
+      repliedCommentIds.add(comment.id); // only after success — never evicted
       log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
+    } catch (err) {
+      log("reply", errMsg(err), "fail");
     }
-  } catch (err) {
-    log("reply", errMsg(err), "fail");
   }
 }
 
@@ -331,13 +336,15 @@ async function autoEngage() {
 
     const post = candidates[Math.floor(Math.random() * Math.min(5, candidates.length))]!;
 
-    // Upvote — only dedup after success
+    engagedPostIds.add(post.id);
+    evictOldest(engagedPostIds, 200, 100);
+
     try {
       await client.upvote(post.id);
-      engagedPostIds.add(post.id);
-      capSet(engagedPostIds, 200, 100);
       log("upvote", `↑ ${getAuthorName(post)}: "${(post.title || "").slice(0, 30)}"`);
-    } catch {}
+    } catch (err) {
+      log("upvote", errMsg(err), "fail");
+    }
 
     // Comment (30% chance)
     if (Math.random() < 0.3) {
@@ -392,9 +399,6 @@ const ACTION_COLORS: Record<string, string> = {
   posts: fg.brightMagenta, learn: fg.brightYellow,
 };
 
-// Cached HR string — recomputed only on width change
-let hrCache = "";
-let hrCacheW = -1;
 
 function renderScreen() {
   const { rows, cols } = getTermSize();
@@ -438,10 +442,7 @@ function renderLeft(w: number, maxRows: number) {
   writeClipped(`${fg.gray}${sKey} · ${fg.brightCyan}P${fg.gray}ost · ${fg.brightCyan}E${fg.gray}ngage · ${fg.brightCyan}H${fg.gray}ome · ${fg.brightCyan}Tab${fg.gray} panel`, maxCol, 2);
   row++;
 
-  // HR (cached)
-  const hrW = Math.max(0, w - 2);
-  if (hrW !== hrCacheW) { hrCache = "─".repeat(hrW); hrCacheW = hrW; }
-  drawHR(row, 2, hrW);
+  drawHR(row, 2, Math.max(0, w - 2));
   row++;
 
   // View header
@@ -752,7 +753,9 @@ export const socialScreen: Screen = {
         if (wasRunning) stopAgent();
         agentSelectIdx = (agentSelectIdx + 1) % agents.length;
         activeAgent = agents[agentSelectIdx]!;
-        cachedTopicsAgentId = null; // invalidate topic cache
+        cachedTopicsAgentId = null;
+        // Don't clear repliedCommentIds — all agents share the same Moltbook account
+        // Don't clear engagedPostIds — re-commenting from same account is undesirable
         reloadClients();
         log("agent", `switched to ${activeAgent.name}`);
         if (wasRunning) startAgent();
