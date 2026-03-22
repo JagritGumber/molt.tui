@@ -554,7 +554,7 @@ function solveChallenge(text: string): number | null {
   if (numbers.length < 1) return null;
 
   if (/doubles?\b|twice/.test(clean)) return numbers[0]! * 2;
-  if (/triples?\b|three times/.test(clean)) return numbers[0]! * 3;
+  if (/triples?\b/.test(clean)) return numbers[0]! * 3;
   if (/halves?\b|half/.test(clean)) return numbers[0]! / 2;
 
   if (numbers.length >= 2) {
