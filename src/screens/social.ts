@@ -619,27 +619,33 @@ async function autoLearnFromEngagement() {
     const avg = engagements.reduce((a, b) => a + b, 0) / engagements.length;
 
     for (const post of newPosts) {
-      analyzedPostIds.add(post.id);
       const engagement = (post.upvotes ?? 0) + (post.comment_count ?? 0);
 
-      // High performer — learn what worked
-      if (engagement > avg * 1.5 && engagement >= 5) {
-        const insight = await zai.chatCompletion([
-          { role: "system", content: "Analyze why this social media post performed well. Respond with ONE concise lesson (under 80 chars) that can guide future posts. Format: 'Posts about X in Y style get engagement'. Just the lesson, nothing else." },
-          { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}` },
-        ], { maxTokens: 60 });
-        addLearning(activeAgent.id, { type: "prefer", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 4 });
-        log("learn", `auto: ${insight.trim().slice(0, 50)}`, "ok");
-      }
+      try {
+        // High performer — learn what worked
+        if (engagement > avg * 1.5 && engagement >= 5) {
+          const insight = await zai.chatCompletion([
+            { role: "system", content: "Analyze why this social media post performed well. Respond with ONE concise lesson (under 80 chars) that can guide future posts. Format: 'Posts about X in Y style get engagement'. Just the lesson, nothing else." },
+            { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}` },
+          ], { maxTokens: 60 });
+          addLearning(activeAgent.id, { type: "prefer", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 4 });
+          log("learn", `auto: ${insight.trim().slice(0, 50)}`, "ok");
+        }
 
-      // Low performer — learn what to avoid
-      if (engagement < avg * 0.3 && posts.length >= 3) {
-        const insight = await zai.chatCompletion([
-          { role: "system", content: "Analyze why this social media post got low engagement. Respond with ONE concise lesson (under 80 chars) about what to avoid. Format: 'Avoid X because Y'. Just the lesson, nothing else." },
-          { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}\nAverage engagement on this account: ${Math.round(avg)}` },
-        ], { maxTokens: 60 });
-        addLearning(activeAgent.id, { type: "avoid", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 3 });
-        log("learn", `auto-avoid: ${insight.trim().slice(0, 50)}`, "ok");
+        // Low performer — learn what to avoid
+        if (engagement < avg * 0.3 && posts.length >= 3) {
+          const insight = await zai.chatCompletion([
+            { role: "system", content: "Analyze why this social media post got low engagement. Respond with ONE concise lesson (under 80 chars) about what to avoid. Format: 'Avoid X because Y'. Just the lesson, nothing else." },
+            { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}\nAverage engagement on this account: ${Math.round(avg)}` },
+          ], { maxTokens: 60 });
+          addLearning(activeAgent.id, { type: "avoid", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 3 });
+          log("learn", `auto-avoid: ${insight.trim().slice(0, 50)}`, "ok");
+        }
+
+        analyzedPostIds.add(post.id); // only mark after successful analysis
+        evictOldest(analyzedPostIds, 100, 50);
+      } catch (err) {
+        log("learn", `analyze failed: ${errMsg(err)}`, "fail");
       }
     }
   } catch (err) {
