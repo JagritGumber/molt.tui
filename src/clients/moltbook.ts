@@ -125,6 +125,26 @@ export class MoltbookClient {
     return this.request("POST", `/posts/${postId}/downvote`);
   }
 
+  async upvoteComment(commentId: string): Promise<any> {
+    return this.request("POST", `/comments/${commentId}/upvote`);
+  }
+
+  // ── Profile ──
+
+  async getProfile(name: string): Promise<any> {
+    return this.request("GET", `/agents/profile?name=${encodeURIComponent(name)}`);
+  }
+
+  async updateMe(data: { description?: string }): Promise<any> {
+    return this.request("PATCH", "/agents/me", data);
+  }
+
+  // ── Feed ──
+
+  async getSubmoltFeed(submoltName: string, sort = "hot"): Promise<any> {
+    return this.request("GET", `/submolts/${submoltName}/feed?sort=${sort}`);
+  }
+
   // ── Submolts ──
 
   async getSubmolts(): Promise<any> {
