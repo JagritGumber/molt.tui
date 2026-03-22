@@ -153,8 +153,8 @@ async function loadMyPosts() {
       const result = await client.search(activeAgent.name, "posts", 20);
       myPosts = result?.posts || result?.results || [];
       myPostIdx = 0;
-    } catch {
-      log("posts", err.message?.slice(0, 50) || "failed", "fail");
+    } catch (searchErr: any) {
+      log("posts", searchErr.message?.slice(0, 50) || "failed", "fail");
     }
   }
   myPostsLoading = false;
