@@ -69,8 +69,8 @@ const subscribedSubmolts = new Set<string>();
 let recentPostTopics: string[] = [];
 const MAX_RECENT_TOPICS = 10;
 
-// #11 Track which agents have had their profile synced this session
-const profileSyncedAgents = new Set<string>();
+// #11 Track last-synced agent (not a set — all agents share one Moltbook account)
+let lastProfileSyncedAgentId: string | null = null;
 
 // #9 Engagement analytics
 interface AgentStats {
@@ -285,15 +285,13 @@ async function autoSubscribe(client: MoltbookClient) {
   try {
     const result = await client.getSubmolts();
     const submolts: Array<{ name: string; description?: string }> = result?.submolts || result?.data || [];
+    const topicRegexes = cachedTopics.map(t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`));
     const toSubscribe = submolts.filter(sub => {
       if (subscribedSubmolts.has(sub.name)) return false;
       const desc = ` ${sub.name} ${sub.description || ""} `.toLowerCase();
-      return cachedTopics.some(t => {
-        const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
-        return re.test(desc);
-      });
+      return topicRegexes.some(re => re.test(desc));
     });
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       toSubscribe.map(sub => client.subscribe(sub.name).then(() => {
         subscribedSubmolts.add(sub.name);
         log("sub", `discovered & subscribed m/${sub.name}`);
@@ -515,11 +513,11 @@ async function autoEngage() {
 async function syncProfile() {
   const client = getClient();
   if (!client || !activeAgent) return;
-  if (profileSyncedAgents.has(activeAgent.id)) return;
+  if (lastProfileSyncedAgentId === activeAgent.id) return;
   try {
     const bio = `${activeAgent.bio}\n\nTopics: ${activeAgent.topics.join(", ")}`;
     await client.updateMe({ description: bio });
-    profileSyncedAgents.add(activeAgent.id);
+    lastProfileSyncedAgentId = activeAgent.id;
     log("profile", `synced bio for ${activeAgent.name}`);
   } catch (err) {
     log("profile", errMsg(err), "fail");
@@ -958,11 +956,11 @@ export const socialScreen: Screen = {
       return;
     }
     if (key.name === "p" || key.name === "P") {
-      if (activeAgent) { log("post", "manual trigger...", "pending"); autoPost().catch(() => {}); }
+      if (activeAgent) { log("post", "manual trigger...", "pending"); autoPost().catch((err) => { log("post", errMsg(err), "fail"); }); }
       return;
     }
     if (key.name === "e" || key.name === "E") {
-      if (activeAgent) { log("engage", "manual trigger...", "pending"); autoEngage().catch(() => {}); }
+      if (activeAgent) { log("engage", "manual trigger...", "pending"); autoEngage().catch((err) => { log("engage", errMsg(err), "fail"); }); }
       return;
     }
     if (key.name === "h" || key.name === "H") {
@@ -1011,6 +1009,10 @@ export const socialScreen: Screen = {
         activeAgent = agents[agentSelectIdx]!;
         cachedTopicsAgentId = null;
         recentPostTopics = []; // new agent = fresh topic rotation
+        if (pendingPost) {
+          log("post", `discarded draft on agent switch: "${pendingPost.title.slice(0, 30)}"`, "pending");
+          pendingPost = null;
+        }
         // Don't clear repliedCommentIds — all agents share the same Moltbook account
         // Don't clear engagedPostIds — re-commenting from same account is undesirable
         // stats accumulates across agents (lifetime totals) — intentional
