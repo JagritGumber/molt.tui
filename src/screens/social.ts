@@ -374,18 +374,24 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
     if (authorName === activeAgent?.name) continue;
     if (repliedCommentIds.has(comment.id)) continue;
 
+    if (!canComment()) { log("reply", "rate limited — skipping", "pending"); break; }
+
     try {
       const reply = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply briefly (1-2 sentences), in character. Just the reply.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post: <post>${activity.post_title}</post>\nComment by ${authorName}: <comment>${comment.content}</comment>\n\nWrite your reply:` },
       ], { maxTokens: 150 });
-      await client.addComment(activity.post_id, reply, comment.id);
+      const ok = await postComment(client, activity.post_id, reply, comment.id);
+      if (!ok) continue;
       repliedCommentIds.add(comment.id); // only after success — never evicted
       stats.repliesSent++;
       log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
 
       // #1 Auto-follow the commenter
       autoFollow(client, authorName).catch(() => {});
+
+      // Respect 20s cooldown before next reply
+      if (recentComments.indexOf(comment) < recentComments.length - 1) await delay(COMMENT_COOLDOWN_MS);
     } catch (err) {
       log("reply", errMsg(err), "fail");
     }
@@ -437,7 +443,8 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   const result = await client.createPost({ submolt_name: submolt, title, content });
 
   if (result?.verification_required && result?.post?.verification) {
-    await handleVerification(client, result.post.verification);
+    const ok = await handleVerification(client, result.post.verification);
+    if (!ok) { log("post", "verification failed — post may be hidden/spam", "fail"); return; }
   }
 
   stats.postsCreated++;
@@ -450,21 +457,41 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   log("post", `published: "${title.slice(0, 40)}"`);
 }
 
-async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }) {
+// Verification is REQUIRED for ALL content (posts + comments)
+// Content stays hidden/spam until verified. 10 consecutive failures = account suspension.
+async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }): Promise<boolean> {
   const zai = getZai();
-  if (!zai) { log("verify", "no ZAI client — cannot verify", "fail"); return; }
+  if (!zai) { log("verify", "no ZAI client — cannot verify", "fail"); return false; }
   try {
     const challenge = verification.challenge_text;
-    if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return; }
+    if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return false; }
     const answer = await zai.chatCompletion([
       { role: "system", content: "Solve this obfuscated math problem. Respond with ONLY the numeric answer with 2 decimal places. Nothing else." },
       { role: "user", content: challenge },
     ], { maxTokens: 20 });
     await client.verify(verification.verification_code, answer.trim());
     log("verify", `solved: ${answer.trim()}`);
+    return true;
   } catch (err) {
     log("verify", errMsg(err), "fail");
+    return false;
   }
+}
+
+// Post a comment with verification handling + rate limiting
+async function postComment(client: MoltbookClient, postId: string, content: string, parentId?: string): Promise<boolean> {
+  if (!canComment()) {
+    log("comment", `rate limited (${dailyCommentCount}/${MAX_DAILY_COMMENTS} today)`, "pending");
+    return false;
+  }
+  const result = await client.addComment(postId, content, parentId);
+  markCommented();
+  // Handle verification if required
+  if (result?.verification_required && result?.comment?.verification) {
+    const ok = await handleVerification(client, result.comment.verification);
+    if (!ok) { log("verify", "comment verification failed — may be hidden", "fail"); return false; }
+  }
+  return true;
 }
 
 // #4 Smarter engagement — prefer relevant posts over random
@@ -507,14 +534,16 @@ async function autoEngage() {
 
     // Comment — higher chance (50%) on relevant posts, 20% otherwise
     const commentChance = isRelevant(post) ? 0.5 : 0.2;
-    if (Math.random() < commentChance) {
+    if (Math.random() < commentChance && canComment()) {
       const comment = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Comment briefly, add value. Just the text.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post by ${author}: <post_title>${post.title}</post_title>\n<post_content>${(post.content || "").slice(0, 300)}</post_content>\n\nWrite your comment:` },
       ], { maxTokens: 150 });
-      await client.addComment(post.id, comment);
-      stats.commentsWritten++;
-      log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
+      const ok = await postComment(client, post.id, comment);
+      if (ok) {
+        stats.commentsWritten++;
+        log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
+      }
     }
   } catch (err) {
     log("engage", errMsg(err), "fail");
@@ -538,12 +567,39 @@ async function syncProfile() {
 
 // ── Agent Control ──
 
-// #5 Configurable intervals (minutes)
+// #5 Configurable intervals — respect Moltbook rate limits:
+//   Posts: 1 per 30 min (we use 35 min = 7 heartbeats × 5 min)
+//   Comments: 20s cooldown, 50/day max
 const INTERVALS = {
   heartbeat: 5,  // minutes between home checks
   engageEvery: 2, // every N heartbeats
-  postEvery: 6,   // every N heartbeats
+  postEvery: 7,   // every N heartbeats (35 min, safely above 30-min limit)
 };
+
+// Comment rate limiting — Moltbook: 20s cooldown, 50/day
+let dailyCommentCount = 0;
+let lastCommentTime = 0;
+const COMMENT_COOLDOWN_MS = 22_000; // 22s (2s margin over 20s)
+const MAX_DAILY_COMMENTS = 45; // 5 under 50 for safety
+let dailyResetDate = new Date().toDateString();
+
+function canComment(): boolean {
+  // Reset daily counter at midnight
+  const today = new Date().toDateString();
+  if (today !== dailyResetDate) { dailyCommentCount = 0; dailyResetDate = today; }
+  if (dailyCommentCount >= MAX_DAILY_COMMENTS) return false;
+  if (Date.now() - lastCommentTime < COMMENT_COOLDOWN_MS) return false;
+  return true;
+}
+
+function markCommented() {
+  dailyCommentCount++;
+  lastCommentTime = Date.now();
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
 
 function startAgent() {
   if (isRunning || !activeAgent) return;
