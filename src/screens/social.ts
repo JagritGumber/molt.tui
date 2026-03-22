@@ -5,11 +5,13 @@ import { app, type Screen } from "../tui/app.ts";
 import { cursor, fg, bg, style, write, getTermSize, stripAnsi, visibleLength, termWidth } from "../tui/ansi.ts";
 import { drawHR, getSpinnerFrame } from "../tui/components.ts";
 import { listAgents, type AgentPersonality } from "../agents/personality.ts";
-import { loadConfig, type Config } from "../utils/config.ts";
+import { loadConfig, getConfigDir, ensureDirs, type Config } from "../utils/config.ts";
 import { MoltbookClient, type MoltbookPost } from "../clients/moltbook.ts";
 import { ZaiClient, type PersonalityPrompt } from "../clients/zai.ts";
 import { buildLearningPrompt, addLearning } from "../agents/learnings.ts";
 import type { KeyEvent } from "../tui/input.ts";
+import { join } from "path";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 
 // ── State ──
 
@@ -40,6 +42,7 @@ interface HomeData {
   activity_on_your_posts?: Array<{ post_id: string; post_title: string }>;
   your_direct_messages?: { pending_request_count?: number; unread_message_count?: number };
   posts_from_accounts_you_follow?: MoltbookPost[];
+  what_to_do_next?: Array<{ suggestion: string }>;
 }
 let homeData: HomeData | null = null;
 
@@ -374,18 +377,24 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
     if (authorName === activeAgent?.name) continue;
     if (repliedCommentIds.has(comment.id)) continue;
 
+    if (!canComment()) { log("reply", "rate limited — skipping", "pending"); break; }
+
     try {
       const reply = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply briefly (1-2 sentences), in character. Just the reply.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post: <post>${activity.post_title}</post>\nComment by ${authorName}: <comment>${comment.content}</comment>\n\nWrite your reply:` },
       ], { maxTokens: 150 });
-      await client.addComment(activity.post_id, reply, comment.id);
-      repliedCommentIds.add(comment.id); // only after success — never evicted
+      const ok = await postComment(client, activity.post_id, reply, comment.id);
+      repliedCommentIds.add(comment.id); // track even on verification failure — comment was submitted to API
+      if (!ok) continue;
       stats.repliesSent++;
       log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
 
       // #1 Auto-follow the commenter
       autoFollow(client, authorName).catch(() => {});
+
+      // Respect 20s cooldown before next reply
+      if (recentComments.indexOf(comment) < recentComments.length - 1) await delay(COMMENT_COOLDOWN_MS);
     } catch (err) {
       log("reply", errMsg(err), "fail");
     }
@@ -399,6 +408,7 @@ async function autoPost() {
   const persona = getPersonality();
   if (!zai || !client || !persona) { log("post", "missing config", "fail"); return; }
   if (approvalMode && pendingPost) { log("post", "draft pending — approve or reject first", "pending"); return; }
+  if (!canPost()) { log("post", "cooldown — 30 min between posts", "pending"); return; }
 
   try {
     log("post", "generating...", "pending");
@@ -416,6 +426,15 @@ async function autoPost() {
 
     const content = await zai.generatePost(persona, topicHint);
     const title = await zai.generatePostTitle(content);
+
+    // Moltbook best practice: search before posting to avoid duplicates
+    const dupeCheck = await client.search(title.slice(0, 80), "posts", 5).catch(() => null);
+    const existing = dupeCheck?.posts || dupeCheck?.results || [];
+    if (existing.some((p: MoltbookPost) => p.title?.toLowerCase() === title.toLowerCase())) {
+      log("post", `duplicate found — skipping: "${title.slice(0, 30)}"`, "pending");
+      return;
+    }
+
     const submolt = activeAgent?.submolts[Math.floor(Math.random() * (activeAgent?.submolts.length || 1))] || "general";
 
     // #10 If approval mode, queue for user review
@@ -437,10 +456,12 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   const result = await client.createPost({ submolt_name: submolt, title, content });
 
   if (result?.verification_required && result?.post?.verification) {
-    await handleVerification(client, result.post.verification);
+    const ok = await handleVerification(client, result.post.verification);
+    if (!ok) { log("post", "verification failed — post may be hidden/spam", "fail"); markPosted(); return; }
   }
 
   stats.postsCreated++;
+  markPosted();
   // #6 Track topic keyword (not full title) to avoid repeating
   if (topicHint) {
     recentPostTopics.push(topicHint.toLowerCase());
@@ -450,21 +471,52 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   log("post", `published: "${title.slice(0, 40)}"`);
 }
 
-async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }) {
+// Verification is REQUIRED for ALL content (posts + comments)
+// Content stays hidden/spam until verified. 10 consecutive failures = account suspension.
+async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }): Promise<boolean> {
   const zai = getZai();
-  if (!zai) { log("verify", "no ZAI client — cannot verify", "fail"); return; }
+  if (!zai) { log("verify", "no ZAI client — cannot verify", "fail"); return false; }
   try {
     const challenge = verification.challenge_text;
-    if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return; }
-    const answer = await zai.chatCompletion([
+    if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return false; }
+    const raw = await zai.chatCompletion([
       { role: "system", content: "Solve this obfuscated math problem. Respond with ONLY the numeric answer with 2 decimal places. Nothing else." },
       { role: "user", content: challenge },
     ], { maxTokens: 20 });
-    await client.verify(verification.verification_code, answer.trim());
-    log("verify", `solved: ${answer.trim()}`);
+    // Validate answer format — must be a number with exactly 2 decimal places
+    // Invalid format wastes a verification attempt (10 failures = suspension)
+    const answer = raw.trim().replace(/[^0-9.\-]/g, "");
+    if (!/^-?\d+\.\d{2}$/.test(answer)) {
+      const fixed = parseFloat(answer);
+      if (isNaN(fixed)) { log("verify", `LLM gave non-numeric: "${raw.trim()}"`, "fail"); return false; }
+      const formatted = fixed.toFixed(2);
+      await client.verify(verification.verification_code, formatted);
+      log("verify", `solved: ${formatted} (fixed from "${raw.trim()}")`);
+    } else {
+      await client.verify(verification.verification_code, answer);
+      log("verify", `solved: ${answer}`);
+    }
+    return true;
   } catch (err) {
     log("verify", errMsg(err), "fail");
+    return false;
   }
+}
+
+// Post a comment with verification handling + rate limiting
+async function postComment(client: MoltbookClient, postId: string, content: string, parentId?: string): Promise<boolean> {
+  if (!canComment()) {
+    log("comment", `rate limited (${loadRateState().commentCount}/${MAX_DAILY_COMMENTS} today)`, "pending");
+    return false;
+  }
+  const result = await client.addComment(postId, content, parentId);
+  // Handle verification if required — must verify BEFORE marking as commented
+  if (result?.verification_required && result?.comment?.verification) {
+    const ok = await handleVerification(client, result.comment.verification);
+    if (!ok) { log("verify", "comment verification failed — may be hidden", "fail"); return false; }
+  }
+  markCommented(); // only after confirmed success
+  return true;
 }
 
 // #4 Smarter engagement — prefer relevant posts over random
@@ -507,14 +559,16 @@ async function autoEngage() {
 
     // Comment — higher chance (50%) on relevant posts, 20% otherwise
     const commentChance = isRelevant(post) ? 0.5 : 0.2;
-    if (Math.random() < commentChance) {
+    if (Math.random() < commentChance && canComment()) {
       const comment = await zai.chatCompletion([
         { role: "system", content: `You are ${persona.name}. ${persona.tone}. Comment briefly, add value. Just the text.${persona.learnings || ""}${UNTRUSTED_PREAMBLE}` },
         { role: "user", content: `Post by ${author}: <post_title>${post.title}</post_title>\n<post_content>${(post.content || "").slice(0, 300)}</post_content>\n\nWrite your comment:` },
       ], { maxTokens: 150 });
-      await client.addComment(post.id, comment);
-      stats.commentsWritten++;
-      log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
+      const ok = await postComment(client, post.id, comment);
+      if (ok) {
+        stats.commentsWritten++;
+        log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
+      }
     }
   } catch (err) {
     log("engage", errMsg(err), "fail");
@@ -538,12 +592,80 @@ async function syncProfile() {
 
 // ── Agent Control ──
 
-// #5 Configurable intervals (minutes)
+// #5 Configurable intervals — respect Moltbook rate limits:
+//   Heartbeat: recommended every 30 min (we use 10 min for responsive UI, but throttle writes)
+//   Posts: 1 per 30 min (we post every 4th heartbeat = 40 min)
+//   Engagement: every 2nd heartbeat = 20 min
+//   Comments: 20s cooldown, 50/day max (enforced by canComment())
+//   Read rate limit: 60 req/min (heartbeat is well under)
+//   Write rate limit: 30 req/min (spread across actions)
 const INTERVALS = {
-  heartbeat: 5,  // minutes between home checks
-  engageEvery: 2, // every N heartbeats
-  postEvery: 6,   // every N heartbeats
+  heartbeat: 10,  // minutes between home checks (Moltbook recommends 30, we use 10 for UI freshness)
+  engageEvery: 2, // every N heartbeats (20 min)
+  postEvery: 4,   // every N heartbeats (40 min, safely above 30-min limit)
 };
+
+// Persistent rate limit state — survives restarts
+// Stored in ~/.moltui/ratelimit.json so the bot can't accidentally spam after restart
+
+interface RateLimitState {
+  date: string;           // YYYY-MM-DD — resets daily counters
+  commentCount: number;   // comments today
+  lastCommentMs: number;  // epoch ms of last comment
+  lastPostMs: number;     // epoch ms of last post
+}
+
+const RATE_FILE = join(getConfigDir(), "ratelimit.json");
+const COMMENT_COOLDOWN_MS = 22_000; // 22s (2s margin over 20s Moltbook limit)
+const POST_COOLDOWN_MS = 35 * 60 * 1000; // 35 min (5 min margin over 30 min limit)
+const MAX_DAILY_COMMENTS = 45; // 5 under 50 Moltbook limit
+
+function loadRateState(): RateLimitState {
+  ensureDirs();
+  const today = new Date().toISOString().slice(0, 10);
+  if (existsSync(RATE_FILE)) {
+    try {
+      const s = JSON.parse(readFileSync(RATE_FILE, "utf-8")) as RateLimitState;
+      if (s.date === today) return s;
+      // New day — reset counters, keep timestamps
+      return { date: today, commentCount: 0, lastCommentMs: s.lastCommentMs, lastPostMs: s.lastPostMs };
+    } catch { /* corrupt file — reset */ }
+  }
+  return { date: today, commentCount: 0, lastCommentMs: 0, lastPostMs: 0 };
+}
+
+function saveRateState(s: RateLimitState) {
+  try { writeFileSync(RATE_FILE, JSON.stringify(s)); } catch { /* non-fatal */ }
+}
+
+function canComment(): boolean {
+  const s = loadRateState();
+  if (s.commentCount >= MAX_DAILY_COMMENTS) return false;
+  if (Date.now() - s.lastCommentMs < COMMENT_COOLDOWN_MS) return false;
+  return true;
+}
+
+function markCommented() {
+  const s = loadRateState();
+  s.commentCount++;
+  s.lastCommentMs = Date.now();
+  saveRateState(s);
+}
+
+function canPost(): boolean {
+  const s = loadRateState();
+  return Date.now() - s.lastPostMs >= POST_COOLDOWN_MS;
+}
+
+function markPosted() {
+  const s = loadRateState();
+  s.lastPostMs = Date.now();
+  saveRateState(s);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
+}
 
 function startAgent() {
   if (isRunning || !activeAgent) return;
@@ -570,9 +692,10 @@ function startAgent() {
   let tick = 0;
   heartbeatTimer = setInterval(async () => {
     tick++;
-    await checkHome().catch(() => {});
-    if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {});
-    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); }
+    // Moltbook priority: 1) respond to activity, 2) engage with others, 3) post (last)
+    await checkHome().catch(() => {}); // replies to activity on our posts
+    if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {}); // upvote + comment
+    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); } // post original (only when inspired)
   }, INTERVALS.heartbeat * 60 * 1000);
   app.requestRender();
 }
