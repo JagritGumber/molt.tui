@@ -251,7 +251,10 @@ async function autoReply(activity: { post_id: string; post_title: string }) {
   const persona = getPersonality();
   if (!zai || !client || !persona) return;
 
-  const comments = await client.getComments(activity.post_id, "new").catch(() => null);
+  const comments = await client.getComments(activity.post_id, "new").catch((err: unknown) => {
+    log("reply", `fetch comments: ${errMsg(err)}`, "fail");
+    return null;
+  });
   const recentComments = comments?.comments?.slice(0, 3) || [];
 
   for (const comment of recentComments) {
@@ -751,8 +754,8 @@ export const socialScreen: Screen = {
         agentSelectIdx = (agentSelectIdx + 1) % agents.length;
         activeAgent = agents[agentSelectIdx]!;
         cachedTopicsAgentId = null;
-        repliedCommentIds.clear();
-        engagedPostIds.clear();
+        // Don't clear repliedCommentIds — all agents share the same Moltbook account
+        // Don't clear engagedPostIds — re-commenting from same account is undesirable
         reloadClients();
         log("agent", `switched to ${activeAgent.name}`);
         if (wasRunning) startAgent();
