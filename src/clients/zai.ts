@@ -85,9 +85,10 @@ export class ZaiClient {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
         const res = await fetch(`${ZAI_BASE}/chat/completions`, {
           method: "POST",
           headers: {
@@ -97,14 +98,15 @@ export class ZaiClient {
           body: JSON.stringify(body),
           signal: controller.signal,
         });
-        clearTimeout(timeout);
 
         if (!res.ok && !isRetryable(res.status)) {
+          clearTimeout(timeout);
           const errText = await res.text();
           throw new Error(`Z.ai ${res.status}: ${errText.slice(0, 200)}`);
         }
 
         if (!res.ok && isRetryable(res.status)) {
+          clearTimeout(timeout);
           lastError = new Error(`Z.ai ${res.status} (attempt ${attempt + 1}/${MAX_RETRIES})`);
           if (attempt < MAX_RETRIES - 1) {
             await delay(RETRY_DELAYS[attempt] ?? 3000);
@@ -114,6 +116,7 @@ export class ZaiClient {
         }
 
         if (!res.body) {
+          clearTimeout(timeout);
           lastError = new Error("Z.ai returned no response body");
           if (attempt < MAX_RETRIES - 1) {
             await delay(RETRY_DELAYS[attempt] ?? 1000);
@@ -122,7 +125,9 @@ export class ZaiClient {
           throw lastError;
         }
 
+        // Keep timeout active during SSE stream reading — abort if stalled
         const content = await readSSEStream(res.body);
+        clearTimeout(timeout);
 
         if (!content.trim()) {
           lastError = new Error("Z.ai returned empty response");
@@ -135,8 +140,10 @@ export class ZaiClient {
 
         return content.trim();
       } catch (err: any) {
+        clearTimeout(timeout);
         lastError = err;
-        if (err.name === "TypeError" || err.message?.includes("fetch")) {
+        // Retry on network errors, fetch failures, and timeouts (AbortError)
+        if (err.name === "TypeError" || err.name === "AbortError" || err.message?.includes("fetch")) {
           if (attempt < MAX_RETRIES - 1) {
             await delay(RETRY_DELAYS[attempt] ?? 1000);
             continue;

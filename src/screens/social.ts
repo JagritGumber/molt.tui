@@ -1,8 +1,8 @@
-// Social screen — autonomous Moltbook agent dashboard
-// Agent posts, comments, upvotes on its own. User monitors and corrects.
+// Social screen — split layout: curated feed left, activity log right
+// Agent posts, comments, upvotes autonomously. User monitors, corrects, teaches.
 
 import { app, type Screen } from "../tui/app.ts";
-import { cursor, fg, bg, style, write, getTermSize } from "../tui/ansi.ts";
+import { cursor, fg, bg, style, write, getTermSize, fitWidth } from "../tui/ansi.ts";
 import { drawHR, getSpinnerFrame } from "../tui/components.ts";
 import { listAgents, type AgentPersonality } from "../agents/personality.ts";
 import { loadConfig } from "../utils/config.ts";
@@ -11,9 +11,11 @@ import { ZaiClient, type PersonalityPrompt } from "../clients/zai.ts";
 import { buildLearningPrompt, addLearning } from "../agents/learnings.ts";
 import type { KeyEvent } from "../tui/input.ts";
 
-type View = "status" | "activity" | "compose" | "review";
+// ── State ──
 
-let view: View = "status";
+type Panel = "home" | "my-posts";
+
+let panel: Panel = "home";
 let agents: AgentPersonality[] = [];
 let activeAgent: AgentPersonality | null = null;
 let agentSelectIdx = 0;
@@ -28,28 +30,65 @@ interface ActivityEntry {
 let activityLog: ActivityEntry[] = [];
 let activityScroll = 0;
 
-// Agent state
+// Agent runtime
 let isRunning = false;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let lastCheck = "";
 let homeData: any = null;
 
-// Compose/review
-let draftPost = "";
-let draftTitle = "";
-let reviewAction: "approve" | "edit" | "reject" | null = null;
+// Feed
+let feedPosts: any[] = [];
+let feedIdx = 0;
+let feedLoading = false;
 
-// Dedup: track comment IDs we've already replied to
+// My posts
+let myPosts: any[] = [];
+let myPostIdx = 0;
+let myPostsLoading = false;
+
+// Learning input mode
+let learningMode = false;
+let learningInput = "";
+let learningContext = ""; // post title/content that triggered learning
+
+// Dedup
 const repliedCommentIds = new Set<string>();
+const engagedPostIds = new Set<string>();
+
+// ── Helpers ──
+
+function getAuthorName(obj: any): string {
+  if (obj?.author?.name) return obj.author.name;
+  if (obj?.author_name) return obj.author_name;
+  if (typeof obj?.author === "string") return obj.author;
+  return "unknown";
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  return `${Math.floor(hrs / 24)}d`;
+}
+
+function isRelevant(post: any): boolean {
+  if (!activeAgent) return false;
+  const topics = activeAgent.topics.map(t => t.toLowerCase());
+  const text = `${post.title || ""} ${post.content || ""}`.toLowerCase();
+  return topics.some(t => text.includes(t));
+}
 
 function log(action: string, detail: string, status: ActivityEntry["status"] = "ok") {
   activityLog.unshift({
     time: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
     action,
-    detail: detail.replace(/[\n\r]/g, " ").slice(0, 60),
+    detail: detail.replace(/[\n\r]/g, " ").slice(0, 80),
     status,
   });
-  if (activityLog.length > 50) activityLog.length = 50;
+  if (activityLog.length > 100) activityLog.length = 100;
   app.requestRender();
 }
 
@@ -79,7 +118,50 @@ function getPersonality(): PersonalityPrompt | null {
   };
 }
 
-// ── Autonomous agent actions ──
+// ── Data Loading ──
+
+async function loadFeed() {
+  const client = getClient();
+  if (!client || feedLoading) return;
+  feedLoading = true;
+  app.requestRender();
+  try {
+    const result = await client.getFeed("hot", 25);
+    feedPosts = result?.posts || result?.data || [];
+    feedIdx = 0;
+    log("feed", `loaded ${feedPosts.length} posts`);
+  } catch (err: any) {
+    log("feed", err.message?.slice(0, 50) || "failed", "fail");
+  }
+  feedLoading = false;
+  app.requestRender();
+}
+
+async function loadMyPosts() {
+  const client = getClient();
+  if (!client || myPostsLoading || !activeAgent) return;
+  myPostsLoading = true;
+  app.requestRender();
+  try {
+    const profile = await client.getProfile(activeAgent.name);
+    myPosts = profile?.posts || profile?.recent_posts || [];
+    myPostIdx = 0;
+    log("posts", `loaded ${myPosts.length} of your posts`);
+  } catch (err: any) {
+    // Fallback: search for agent's posts
+    try {
+      const result = await client.search(activeAgent.name, "posts", 20);
+      myPosts = result?.posts || result?.results || [];
+      myPostIdx = 0;
+    } catch {
+      log("posts", err.message?.slice(0, 50) || "failed", "fail");
+    }
+  }
+  myPostsLoading = false;
+  app.requestRender();
+}
+
+// ── Autonomous Agent Actions ──
 
 async function checkHome() {
   const client = getClient();
@@ -88,13 +170,15 @@ async function checkHome() {
     homeData = await client.getHome();
     lastCheck = new Date().toLocaleTimeString("en-US", { hour12: false });
     const notifs = homeData?.your_account?.unread_notification_count || 0;
-    log("home", `checked — ${notifs} notifications`);
+    log("home", `${notifs} notifications`);
 
-    // Auto-engage: reply to comments on our posts
     if (homeData?.activity_on_your_posts?.length > 0) {
-      for (const activity of homeData.activity_on_your_posts.slice(0, 2)) {
+      for (const activity of homeData.activity_on_your_posts.slice(0, 3)) {
         await autoReply(activity);
       }
+    }
+    if (notifs > 0) {
+      try { await client.markAllRead(); } catch {}
     }
   } catch (err: any) {
     log("home", err.message?.slice(0, 50) || "failed", "fail");
@@ -109,18 +193,20 @@ async function autoReply(activity: any) {
 
   try {
     const comments = await client.getComments(activity.post_id, "new");
-    const recentComments = comments?.comments?.slice(0, 2) || [];
+    const recentComments = comments?.comments?.slice(0, 3) || [];
 
     for (const comment of recentComments) {
-      if (comment.author_name === activeAgent?.name) continue;
-      if (repliedCommentIds.has(comment.id)) continue; // dedup: already replied
+      const authorName = getAuthorName(comment);
+      if (authorName === activeAgent?.name) continue;
+      if (repliedCommentIds.has(comment.id)) continue;
       repliedCommentIds.add(comment.id);
+
       const reply = await zai.chatCompletion([
-        { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply to a comment on your Moltbook post. Be brief (1-2 sentences), authentic, and in character. Just the reply text, nothing else.${persona.learnings || ""}` },
-        { role: "user", content: `Post: "${activity.post_title}"\nComment by ${comment.author_name}: "${comment.content}"\n\nReply:` },
+        { role: "system", content: `You are ${persona.name}. ${persona.tone}. Reply briefly (1-2 sentences), in character. Just the reply.${persona.learnings || ""}` },
+        { role: "user", content: `Post: "${activity.post_title}"\nComment by ${authorName}: "${comment.content}"\n\nReply:` },
       ], { maxTokens: 150 });
       await client.addComment(activity.post_id, reply, comment.id);
-      log("reply", `→ ${comment.author_name}: ${reply.slice(0, 40)}`);
+      log("reply", `→ ${authorName}: ${reply.slice(0, 40)}`);
     }
   } catch (err: any) {
     log("reply", err.message?.slice(0, 50) || "failed", "fail");
@@ -135,23 +221,20 @@ async function autoPost() {
 
   try {
     log("post", "generating...", "pending");
-    draftPost = await zai.generatePost(persona);
-    draftTitle = await zai.generatePostTitle(draftPost);
-    log("post", `draft: "${draftTitle.slice(0, 40)}"`, "pending");
+    const content = await zai.generatePost(persona);
+    const title = await zai.generatePostTitle(content);
+    log("post", `draft: "${title.slice(0, 40)}"`, "pending");
 
-    // Auto-post to general
     const result = await client.createPost({
       submolt_name: activeAgent?.submolts[0] || "general",
-      title: draftTitle,
-      content: draftPost,
+      title,
+      content,
     });
 
-    // Handle verification if needed
     if (result?.verification_required && result?.post?.verification) {
       await handleVerification(client, result.post.verification);
     }
-
-    log("post", `published: "${draftTitle.slice(0, 40)}"`);
+    log("post", `published: "${title.slice(0, 40)}"`);
   } catch (err: any) {
     log("post", err.message?.slice(0, 50) || "failed", "fail");
   }
@@ -160,16 +243,13 @@ async function autoPost() {
 async function handleVerification(client: MoltbookClient, verification: any) {
   const zai = getZai();
   if (!zai) return;
-
   try {
-    const challenge = verification.challenge_text;
     const answer = await zai.chatCompletion([
-      { role: "system", content: "You solve obfuscated math word problems. Read through scattered symbols, alternating caps, and broken words to find the math problem. Respond with ONLY the numeric answer with 2 decimal places (e.g., '15.00'). Nothing else." },
-      { role: "user", content: challenge },
+      { role: "system", content: "Solve this obfuscated math problem. Respond with ONLY the numeric answer with 2 decimal places. Nothing else." },
+      { role: "user", content: verification.challenge_text },
     ], { maxTokens: 20 });
-
     await client.verify(verification.verification_code, answer.trim());
-    log("verify", `solved challenge: ${answer.trim()}`);
+    log("verify", `solved: ${answer.trim()}`);
   } catch (err: any) {
     log("verify", err.message?.slice(0, 50) || "failed", "fail");
   }
@@ -182,180 +262,438 @@ async function autoEngage() {
   if (!client || !zai || !persona) return;
 
   try {
-    const feed = await client.getFeed("hot", 10);
+    const feed = await client.getFeed("hot", 15);
     const posts = feed?.posts || feed?.data || [];
     if (posts.length === 0) return;
 
-    // Pick a post to engage with
-    const post = posts[Math.floor(Math.random() * Math.min(5, posts.length))];
+    const candidates = posts.filter((p: any) => !engagedPostIds.has(p.id));
+    const post = candidates[Math.floor(Math.random() * Math.min(5, candidates.length))];
     if (!post) return;
+    engagedPostIds.add(post.id);
+    if (engagedPostIds.size > 200) {
+      const arr = [...engagedPostIds];
+      engagedPostIds.clear();
+      for (const id of arr.slice(-100)) engagedPostIds.add(id);
+    }
 
-    // Upvote
     try {
       await client.upvote(post.id);
-      log("upvote", `↑ "${(post.title || "").slice(0, 40)}"`);
+      log("upvote", `↑ ${getAuthorName(post)}: "${(post.title || "").slice(0, 30)}"`);
     } catch {}
 
-    // Maybe comment (30% chance)
     if (Math.random() < 0.3) {
       const comment = await zai.chatCompletion([
-        { role: "system", content: `You are ${persona.name}. ${persona.tone}. Comment on a Moltbook post. Be brief (1-2 sentences), genuine, add value. Just the comment text.${persona.learnings || ""}` },
-        { role: "user", content: `Post by ${post.author_name}: "${post.title}"\n${(post.content || "").slice(0, 300)}\n\nYour comment:` },
+        { role: "system", content: `You are ${persona.name}. ${persona.tone}. Comment briefly, add value. Just the text.${persona.learnings || ""}` },
+        { role: "user", content: `Post by ${getAuthorName(post)}: "${post.title}"\n${(post.content || "").slice(0, 300)}\n\nComment:` },
       ], { maxTokens: 150 });
       await client.addComment(post.id, comment);
-      log("comment", `on "${(post.title || "").slice(0, 30)}": ${comment.slice(0, 30)}`);
+      log("comment", `"${(post.title || "").slice(0, 25)}": ${comment.slice(0, 30)}`);
     }
   } catch (err: any) {
     log("engage", err.message?.slice(0, 50) || "failed", "fail");
   }
 }
 
+// ── Agent Control ──
+
 function startAgent() {
   if (isRunning || !activeAgent) return;
   isRunning = true;
   log("agent", `started: ${activeAgent.name}`);
-
-  // Initial check
   checkHome();
+  loadFeed();
 
-  // Heartbeat: check home every 5 minutes, post every 30 min, engage every 10 min
-  let tickCount = 0;
+  let tick = 0;
   heartbeatTimer = setInterval(() => {
-    tickCount++;
-    checkHome(); // every 5 min
-    if (tickCount % 2 === 0) autoEngage(); // every 10 min
-    if (tickCount % 6 === 0) autoPost(); // every 30 min
+    tick++;
+    checkHome();
+    if (tick % 2 === 0) autoEngage();
+    if (tick % 6 === 0) { autoPost(); loadFeed(); }
   }, 5 * 60 * 1000);
-
   app.requestRender();
 }
 
 function stopAgent() {
   if (!isRunning) return;
   isRunning = false;
-  if (heartbeatTimer) {
-    clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
+  if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
   log("agent", "stopped");
   app.requestRender();
 }
 
 // ── Rendering ──
 
-function renderStatus() {
+const ACTION_COLORS: Record<string, string> = {
+  post: fg.brightMagenta, reply: fg.brightCyan, comment: fg.brightBlue,
+  upvote: fg.brightGreen, engage: fg.brightYellow, home: fg.gray,
+  agent: fg.brightWhite, verify: fg.brightYellow, feed: fg.brightBlue,
+  posts: fg.brightMagenta,
+};
+
+function render() {
   const { rows, cols } = getTermSize();
-  const w = Math.min(70, cols - 6);
 
-  cursor.to(3, 3);
-  write(`${fg.brightCyan}${style.bold}Social${style.reset}`);
+  // Split: left 2/3 for content, right 1/3 for activity
+  const rightW = Math.max(25, Math.min(35, Math.floor(cols / 3)));
+  const leftW = cols - rightW - 1; // 1 for divider
+  const dividerCol = leftW + 1;
 
-  // Agent selector
-  cursor.to(3, 12);
+  renderLeft(leftW, rows);
+  renderDivider(dividerCol, rows);
+  renderRight(dividerCol + 1, rightW, rows);
+}
+
+function renderLeft(w: number, maxRows: number) {
+  let row = 2;
+
+  // Header
+  cursor.to(row, 2);
   if (activeAgent) {
-    write(`${fg.brightWhite}${style.bold}${activeAgent.name}${style.reset} ${isRunning ? `${fg.brightGreen}● running${style.reset}` : `${fg.gray}○ stopped${style.reset}`}\x1b[K`);
+    const status = isRunning ? `${fg.brightGreen}● running` : `${fg.gray}○ stopped`;
+    write(`${fg.brightCyan}${style.bold}Social${style.reset}  ${fg.brightWhite}${activeAgent.name}${style.reset} ${status}${style.reset}\x1b[K`);
   } else {
-    write(`${fg.gray}no agent selected\x1b[K${style.reset}`);
+    write(`${fg.brightCyan}${style.bold}Social${style.reset}  ${fg.gray}no agent\x1b[K${style.reset}`);
   }
+  row++;
 
-  drawHR(4, 3, w);
-
-  // Quick stats
+  // Stats
+  cursor.to(row, 2);
   if (homeData?.your_account) {
-    const acc = homeData.your_account;
-    cursor.to(5, 3);
-    write(`${fg.gray}Karma: ${fg.brightWhite}${acc.karma || 0}${fg.gray}  Notifications: ${fg.brightYellow}${acc.unread_notification_count || 0}${fg.gray}  Last check: ${fg.white}${lastCheck || "never"}${style.reset}\x1b[K`);
+    const a = homeData.your_account;
+    write(`${fg.gray}karma ${fg.brightWhite}${a.karma || 0}${fg.gray} · notifs ${a.unread_notification_count > 0 ? fg.brightYellow : fg.gray}${a.unread_notification_count || 0}${fg.gray} · ${lastCheck || "—"}${style.reset}\x1b[K`);
   } else {
-    cursor.to(5, 3);
-    write(`${fg.gray}No data yet — start the agent to begin${style.reset}\x1b[K`);
+    write(`${fg.gray}press S to start agent${style.reset}\x1b[K`);
   }
+  row++;
 
   // Controls
-  cursor.to(7, 3);
-  const controls = [
-    isRunning ? `${bg.rgb(40, 30, 30)}${fg.brightRed}${style.bold} S ${style.reset} stop` : `${bg.rgb(30, 40, 30)}${fg.brightGreen}${style.bold} S ${style.reset} start`,
-    `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} P ${style.reset} post now`,
-    `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} E ${style.reset} engage`,
-    `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} H ${style.reset} check home`,
-    `${bg.rgb(40, 40, 70)}${fg.brightCyan}${style.bold} Tab ${style.reset} switch agent`,
-  ];
-  write(controls.join("  ") + "\x1b[K");
+  cursor.to(row, 2);
+  const sKey = isRunning ? `${fg.brightRed}S${fg.gray}top` : `${fg.brightGreen}S${fg.gray}tart`;
+  write(`${fg.gray}${sKey} · ${fg.brightCyan}P${fg.gray}ost · ${fg.brightCyan}E${fg.gray}ngage · ${fg.brightCyan}H${fg.gray}ome · ${fg.brightCyan}Tab${fg.gray} panel${style.reset}\x1b[K`);
+  row++;
+  drawHR(row, 2, w - 2); row++;
 
-  drawHR(9, 3, w);
+  // Panel header
+  cursor.to(row, 2);
+  if (panel === "home") {
+    write(`${fg.brightWhite}${style.bold}⚡ Home Feed${style.reset}${fg.gray}  (Tab → My Posts)${style.reset}\x1b[K`);
+  } else {
+    write(`${fg.brightWhite}${style.bold}📝 My Posts${style.reset}${fg.gray}  (Tab → Home Feed)${style.reset}\x1b[K`);
+  }
+  row++;
 
-  // Activity log
-  cursor.to(10, 3);
-  write(`${fg.gray}${style.bold}Activity${style.reset}\x1b[K`);
+  if (panel === "home") {
+    renderHomeFeed(row, w, maxRows);
+  } else {
+    renderMyPosts(row, w, maxRows);
+  }
 
-  const maxLines = rows - 13;
-  for (let i = 0; i < maxLines; i++) {
-    const idx = activityScroll + i;
-    cursor.to(11 + i, 3);
-    if (idx >= activityLog.length) {
-      write(`\x1b[K`);
-      continue;
-    }
-    const entry = activityLog[idx]!;
-    const statusIcon = entry.status === "ok" ? `${fg.brightGreen}✓` : entry.status === "fail" ? `${fg.brightRed}✗` : `${fg.brightYellow}◑`;
-    const actionColor = entry.action === "post" ? fg.brightMagenta : entry.action === "reply" ? fg.brightCyan : fg.gray;
-    write(`${fg.gray}${entry.time} ${statusIcon} ${actionColor}${entry.action.padEnd(8)}${fg.white}${entry.detail}${style.reset}\x1b[K`);
+  // Learning input overlay
+  if (learningMode) {
+    renderLearningInput(maxRows - 3, w);
   }
 }
 
-// ── Key handling ──
+function renderHomeFeed(startRow: number, w: number, maxRows: number) {
+  if (feedLoading) {
+    cursor.to(startRow, 2);
+    write(`${fg.brightYellow}${getSpinnerFrame()} Loading feed...${style.reset}\x1b[K`);
+    return;
+  }
+  if (feedPosts.length === 0) {
+    cursor.to(startRow, 2);
+    write(`${fg.gray}No posts yet — press H to check home${style.reset}\x1b[K`);
+    return;
+  }
+
+  const availRows = maxRows - startRow - 2;
+  const postHeight = 4; // lines per post
+  const visible = Math.max(1, Math.floor(availRows / postHeight));
+
+  // Scroll window around feedIdx
+  const scrollStart = Math.max(0, Math.min(feedIdx - Math.floor(visible / 2), feedPosts.length - visible));
+
+  for (let i = 0; i < visible; i++) {
+    const pIdx = scrollStart + i;
+    const row = startRow + i * postHeight;
+
+    if (pIdx >= feedPosts.length) {
+      for (let j = 0; j < postHeight; j++) {
+        cursor.to(row + j, 2);
+        write("\x1b[K");
+      }
+      continue;
+    }
+
+    const post = feedPosts[pIdx]!;
+    const selected = pIdx === feedIdx;
+    const author = getAuthorName(post);
+    const relevant = isRelevant(post);
+
+    // Line 1: indicator + title
+    cursor.to(row, 2);
+    const marker = selected ? `${fg.brightCyan}▸ ` : "  ";
+    const star = relevant ? `${fg.brightYellow}★ ` : "";
+    const titleW = w - 8;
+    const title = (post.title || "untitled").slice(0, titleW);
+    write(`${marker}${star}${selected ? fg.brightWhite + style.bold : fg.white}${title}${style.reset}\x1b[K`);
+
+    // Line 2: author · time · submolt
+    cursor.to(row + 1, 4);
+    const age = post.created_at ? timeAgo(post.created_at) : "";
+    const sub = post.submolt_name ? `${fg.brightBlue}m/${post.submolt_name}` : "";
+    write(`${fg.gray}${author} · ${age}  ${sub}${style.reset}\x1b[K`);
+
+    // Line 3: preview + stats
+    cursor.to(row + 2, 4);
+    const up = post.upvotes ?? 0;
+    const cmts = post.comment_count ?? 0;
+    const preview = (post.content || "").replace(/[\n\r]/g, " ").slice(0, w - 25);
+    write(`${fg.gray}${preview}${style.reset}\x1b[K`);
+
+    // Line 4: stats + separator
+    cursor.to(row + 3, 4);
+    write(`${fg.brightGreen}↑${up}${fg.gray} · ${fg.brightCyan}💬${cmts}${fg.gray}${relevant ? `  ${fg.brightYellow}relevant` : ""}${style.reset}  ${fg.gray}${"─".repeat(Math.max(0, w - 25))}${style.reset}\x1b[K`);
+  }
+
+  // Scroll position
+  if (feedPosts.length > visible) {
+    const pct = Math.round((feedIdx / (feedPosts.length - 1)) * 100);
+    cursor.to(maxRows - 2, 2);
+    write(`${fg.gray}${feedIdx + 1}/${feedPosts.length} (${pct}%)  j/k scroll · L teach agent${style.reset}\x1b[K`);
+  }
+}
+
+function renderMyPosts(startRow: number, w: number, maxRows: number) {
+  if (myPostsLoading) {
+    cursor.to(startRow, 2);
+    write(`${fg.brightYellow}${getSpinnerFrame()} Loading your posts...${style.reset}\x1b[K`);
+    return;
+  }
+  if (myPosts.length === 0) {
+    cursor.to(startRow, 2);
+    write(`${fg.gray}No posts from agent yet — press P to post${style.reset}\x1b[K`);
+    cursor.to(startRow + 1, 2);
+    write(`${fg.gray}or press R to refresh${style.reset}\x1b[K`);
+    return;
+  }
+
+  const availRows = maxRows - startRow - 2;
+  const postHeight = 3;
+  const visible = Math.max(1, Math.floor(availRows / postHeight));
+  const scrollStart = Math.max(0, Math.min(myPostIdx - Math.floor(visible / 2), myPosts.length - visible));
+
+  for (let i = 0; i < visible; i++) {
+    const pIdx = scrollStart + i;
+    const row = startRow + i * postHeight;
+
+    if (pIdx >= myPosts.length) {
+      for (let j = 0; j < postHeight; j++) {
+        cursor.to(row + j, 2);
+        write("\x1b[K");
+      }
+      continue;
+    }
+
+    const post = myPosts[pIdx]!;
+    const selected = pIdx === myPostIdx;
+
+    // Line 1: title
+    cursor.to(row, 2);
+    const marker = selected ? `${fg.brightCyan}▸ ` : "  ";
+    const title = (post.title || "untitled").slice(0, w - 6);
+    write(`${marker}${selected ? fg.brightWhite + style.bold : fg.white}${title}${style.reset}\x1b[K`);
+
+    // Line 2: stats + time
+    cursor.to(row + 1, 4);
+    const age = post.created_at ? timeAgo(post.created_at) : "";
+    const up = post.upvotes ?? 0;
+    const cmts = post.comment_count ?? 0;
+    write(`${fg.brightGreen}↑${up}${fg.gray} · ${fg.brightCyan}💬${cmts}${fg.gray} · ${age}${style.reset}\x1b[K`);
+
+    // Line 3: content preview
+    cursor.to(row + 2, 4);
+    const preview = (post.content || "").replace(/[\n\r]/g, " ").slice(0, w - 8);
+    write(`${fg.gray}${preview}${style.reset}\x1b[K`);
+  }
+
+  if (myPosts.length > visible) {
+    cursor.to(maxRows - 2, 2);
+    write(`${fg.gray}${myPostIdx + 1}/${myPosts.length}  j/k scroll · L teach agent · R refresh${style.reset}\x1b[K`);
+  }
+}
+
+function renderLearningInput(row: number, w: number) {
+  cursor.to(row, 2);
+  write(`${bg.rgb(30, 30, 60)}${fg.brightYellow}${style.bold} Teach agent: ${style.reset}${bg.rgb(30, 30, 60)}${fg.brightWhite}${learningInput}▌${style.reset}${" ".repeat(Math.max(0, w - learningInput.length - 17))}\x1b[K`);
+  cursor.to(row + 1, 2);
+  write(`${fg.gray}context: ${learningContext.slice(0, w - 12)}${style.reset}\x1b[K`);
+  cursor.to(row + 2, 2);
+  write(`${fg.gray}Enter to save · Esc to cancel${style.reset}\x1b[K`);
+}
+
+function renderDivider(col: number, maxRows: number) {
+  for (let r = 2; r < maxRows; r++) {
+    cursor.to(r, col);
+    write(`${fg.gray}│${style.reset}`);
+  }
+}
+
+function renderRight(startCol: number, w: number, maxRows: number) {
+  let row = 2;
+
+  // Header
+  cursor.to(row, startCol);
+  write(`${fg.gray}${style.bold} Activity${style.reset}\x1b[K`);
+  row++;
+
+  // Activity entries
+  const maxLines = maxRows - row - 1;
+  for (let i = 0; i < maxLines; i++) {
+    const idx = activityScroll + i;
+    cursor.to(row + i, startCol);
+    if (idx >= activityLog.length) {
+      write("\x1b[K");
+      continue;
+    }
+    const entry = activityLog[idx]!;
+    const icon = entry.status === "ok" ? `${fg.brightGreen}✓` : entry.status === "fail" ? `${fg.brightRed}✗` : `${fg.brightYellow}◑`;
+    const color = ACTION_COLORS[entry.action] || fg.gray;
+    // Compact format for narrow panel
+    const detail = entry.detail.slice(0, w - 14);
+    write(` ${fg.gray}${entry.time} ${icon}${color} ${entry.action.slice(0, 5)}${style.reset} ${fg.white}${detail}${style.reset}\x1b[K`);
+  }
+}
+
+// ── Key Handling ──
 
 export const socialScreen: Screen = {
   name: "social",
-  statusHint: "S start/stop • P post • E engage • H home • Tab agent • esc back • q quit",
+  statusHint: "S start/stop · P post · E engage · H home · Tab panel · L teach · q quit",
+  get handlesTextInput() { return learningMode; },
 
   onEnter() {
     agents = listAgents();
     if (agents.length > 0 && !activeAgent) {
       activeAgent = agents[0]!;
     }
+    if (feedPosts.length === 0 && activeAgent) loadFeed();
   },
 
-  onLeave() {
-    // Don't stop the agent when leaving — it runs in background
-  },
+  onLeave() {},
 
   render() {
-    renderStatus();
+    render();
   },
 
   onKey(key: KeyEvent) {
+    // Learning input mode
+    if (learningMode) {
+      if (key.name === "escape") {
+        learningMode = false;
+        learningInput = "";
+        app.requestRender();
+      } else if (key.name === "return") {
+        if (learningInput.trim() && activeAgent) {
+          addLearning(activeAgent.id, {
+            type: "prefer",
+            lesson: learningInput.trim(),
+            context: learningContext,
+            strength: 3,
+          });
+          log("learn", `taught: "${learningInput.trim().slice(0, 40)}"`);
+          learningMode = false;
+          learningInput = "";
+        }
+      } else if (key.name === "backspace") {
+        learningInput = learningInput.slice(0, -1);
+        app.requestRender();
+      } else if (key.raw && key.raw.length === 1 && key.raw.charCodeAt(0) >= 32) {
+        learningInput += key.raw;
+        app.requestRender();
+      }
+      return;
+    }
+
+    // Global escape
     if (key.name === "escape") {
       app.back();
-    } else if (key.name === "s" || key.name === "S") {
-      if (isRunning) stopAgent();
-      else startAgent();
-    } else if (key.name === "p" || key.name === "P") {
-      if (activeAgent) {
-        log("post", "manual trigger...", "pending");
-        autoPost();
+      return;
+    }
+
+    // Tab: switch panels
+    if (key.name === "tab") {
+      if (panel === "home") {
+        panel = "my-posts";
+        if (myPosts.length === 0) loadMyPosts();
+      } else {
+        panel = "home";
       }
-    } else if (key.name === "e" || key.name === "E") {
-      if (activeAgent) {
-        log("engage", "manual trigger...", "pending");
-        autoEngage();
+      app.requestRender();
+      return;
+    }
+
+    // Agent controls
+    if (key.name === "s" || key.name === "S") {
+      isRunning ? stopAgent() : startAgent();
+      return;
+    }
+    if (key.name === "p" || key.name === "P") {
+      if (activeAgent) { log("post", "manual trigger...", "pending"); autoPost(); }
+      return;
+    }
+    if (key.name === "e" || key.name === "E") {
+      if (activeAgent) { log("engage", "manual trigger...", "pending"); autoEngage(); }
+      return;
+    }
+    if (key.name === "h" || key.name === "H") {
+      if (activeAgent) { checkHome(); loadFeed(); }
+      return;
+    }
+    if (key.name === "r" || key.name === "R") {
+      if (panel === "home") loadFeed();
+      else loadMyPosts();
+      return;
+    }
+
+    // Teach agent from current context
+    if (key.name === "l" || key.name === "L") {
+      if (panel === "home" && feedPosts[feedIdx]) {
+        const post = feedPosts[feedIdx]!;
+        learningContext = `${getAuthorName(post)}: ${(post.title || "").slice(0, 60)}`;
+      } else if (panel === "my-posts" && myPosts[myPostIdx]) {
+        const post = myPosts[myPostIdx]!;
+        learningContext = `my post: ${(post.title || "").slice(0, 60)}`;
+      } else {
+        learningContext = "";
       }
-    } else if (key.name === "h" || key.name === "H") {
-      if (activeAgent) checkHome();
-    } else if (key.name === "tab") {
-      // Cycle through agents
-      if (agents.length > 0) {
-        agentSelectIdx = (agentSelectIdx + 1) % agents.length;
+      learningMode = true;
+      learningInput = "";
+      app.requestRender();
+      return;
+    }
+
+    // Agent cycling (Shift+Tab or A)
+    if (key.name === "a" || key.name === "A") {
+      if (agents.length > 1) {
         const wasRunning = isRunning;
         if (wasRunning) stopAgent();
+        agentSelectIdx = (agentSelectIdx + 1) % agents.length;
         activeAgent = agents[agentSelectIdx]!;
         log("agent", `switched to ${activeAgent.name}`);
         if (wasRunning) startAgent();
       }
-    } else if (key.name === "up" || key.name === "k") {
-      activityScroll = Math.max(0, activityScroll - 1);
+      return;
+    }
+
+    // Scrolling
+    if (key.name === "up" || key.name === "k") {
+      if (panel === "home") feedIdx = Math.max(0, feedIdx - 1);
+      else myPostIdx = Math.max(0, myPostIdx - 1);
       app.requestRender();
     } else if (key.name === "down" || key.name === "j") {
-      activityScroll = Math.min(Math.max(0, activityLog.length - 5), activityScroll + 1);
+      if (panel === "home") feedIdx = Math.min(Math.max(0, feedPosts.length - 1), feedIdx + 1);
+      else myPostIdx = Math.min(Math.max(0, myPosts.length - 1), myPostIdx + 1);
       app.requestRender();
     }
   },
