@@ -9,6 +9,7 @@ import { loadConfig, getConfigDir, ensureDirs, type Config } from "../utils/conf
 import { MoltbookClient, type MoltbookPost } from "../clients/moltbook.ts";
 import { ZaiClient, type PersonalityPrompt } from "../clients/zai.ts";
 import { buildLearningPrompt, addLearning } from "../agents/learnings.ts";
+import { birdCheck, birdTweet } from "../clients/bird.ts";
 import type { KeyEvent } from "../tui/input.ts";
 import { join } from "path";
 import { existsSync, readFileSync, writeFileSync } from "fs";
@@ -89,6 +90,10 @@ let stats: AgentStats = { postsCreated: 0, commentsWritten: 0, upvotesGiven: 0, 
 // #10 Post approval mode
 let approvalMode = false;
 let pendingPost: { title: string; content: string; submolt: string; topicHint?: string } | null = null;
+
+// Twitter/X draft system — learns from top Moltbook posts, generates Twitter-adapted content
+let pendingTweet: string | null = null;
+let twitterReady = false;
 
 function evictOldest(set: Set<string>, max: number, keepLast: number) {
   if (set.size > max) {
@@ -590,6 +595,63 @@ async function syncProfile() {
   }
 }
 
+// ── Twitter/X Draft Generation ──
+
+async function generateTwitterDraft() {
+  const zai = getZai();
+  const persona = getPersonality();
+  if (!zai || !persona) { log("tweet", "missing config", "fail"); return; }
+  if (pendingTweet) { log("tweet", "draft pending — Y post, N discard", "pending"); return; }
+
+  try {
+    log("tweet", "analyzing top posts...", "pending");
+
+    // Find the best-performing posts from feed for inspiration
+    const topPosts = [...feedPosts]
+      .sort((a, b) => ((b.upvotes ?? 0) + (b.comment_count ?? 0)) - ((a.upvotes ?? 0) + (a.comment_count ?? 0)))
+      .slice(0, 5);
+
+    const inspiration = topPosts.map(p =>
+      `"${p.title}" (${p.upvotes ?? 0} upvotes, ${p.comment_count ?? 0} comments)`
+    ).join("\n");
+
+    const draft = await zai.chatCompletion([
+      { role: "system", content: `You write tweets for @ItsRoboki (Jagrit) — a developer who builds tools and shares tech insights.
+
+STYLE (from their real tweets):
+- Casual, direct, no corporate speak
+- Short punchy lines, sometimes multi-line
+- Uses lowercase, minimal punctuation
+- Shares what they're building or finds interesting
+- Opinionated about tech, AI, infrastructure
+- Sometimes starts with a bold claim or number
+
+RULES:
+- Max 280 characters
+- No hashtags unless truly relevant
+- No "🧵" or "thread:" prefixes
+- Sound like a real person, not a brand
+- Write the tweet ONLY, nothing else${persona.learnings || ""}` },
+      { role: "user", content: `These topics are trending and getting high engagement on an AI social network:\n${inspiration}\n\nWrite a tweet that Jagrit would post, inspired by what's performing well. Make it authentic to his voice.` },
+    ], { maxTokens: 100 });
+
+    pendingTweet = draft.trim().slice(0, 280);
+    log("tweet", `draft ready — Y post, N discard`, "pending");
+    app.requestRender();
+  } catch (err) {
+    log("tweet", errMsg(err), "fail");
+  }
+}
+
+async function postTweet(text: string) {
+  try {
+    birdTweet(text);
+    log("tweet", `posted: "${text.slice(0, 40)}"`, "ok");
+  } catch (err) {
+    log("tweet", errMsg(err), "fail");
+  }
+}
+
 // ── Agent Control ──
 
 // #5 Configurable intervals — respect Moltbook rate limits:
@@ -717,7 +779,7 @@ const ACTION_COLORS: Record<string, string> = {
   agent: fg.brightWhite, verify: fg.brightYellow, feed: fg.brightBlue,
   posts: fg.brightMagenta, learn: fg.brightYellow, follow: fg.brightGreen,
   sub: fg.brightBlue, dm: fg.brightCyan, profile: fg.brightMagenta,
-  stats: fg.brightWhite,
+  stats: fg.brightWhite, tweet: fg.brightCyan,
 };
 
 
@@ -793,6 +855,25 @@ function renderLeft(w: number, maxRows: number) {
     row++;
     cursor.to(row, 3);
     writeClipped(`${fg.gray}→ m/${pendingPost.submolt}  ${fg.brightGreen}Y${fg.gray} publish · ${fg.brightRed}N${fg.gray} discard`, maxCol, 3);
+    row++;
+    drawHR(row, 2, Math.max(0, w - 2));
+    row++;
+  }
+
+  // Pending tweet
+  if (pendingTweet) {
+    cursor.to(row, 2);
+    writeClipped(`${bg.rgb(10, 30, 50)}${fg.brightCyan}${style.bold} TWEET DRAFT${style.reset}`, maxCol, 2);
+    row++;
+    // Render multi-line tweet content
+    const tweetLines = pendingTweet.split("\n").slice(0, 4);
+    for (const line of tweetLines) {
+      cursor.to(row, 3);
+      writeClipped(`${fg.brightWhite}${line.slice(0, maxCol - 6)}`, maxCol, 3);
+      row++;
+    }
+    cursor.to(row, 3);
+    writeClipped(`${fg.gray}${pendingTweet.length}/280  ${fg.brightGreen}Y${fg.gray} tweet · ${fg.brightRed}N${fg.gray} discard`, maxCol, 3);
     row++;
     drawHR(row, 2, Math.max(0, w - 2));
     row++;
@@ -1002,7 +1083,7 @@ function renderRight(startCol: number, w: number, maxRows: number) {
 
 export const socialScreen: Screen = {
   name: "social",
-  statusHint: "S start/stop · P post · E engage · H home · Tab panel · T teach · V review · q quit",
+  statusHint: "S start/stop · P post · E engage · H home · X tweet · Tab panel · T teach · V review · q quit",
   get handlesTextInput() { return learningMode; },
 
   onEnter() {
@@ -1018,6 +1099,16 @@ export const socialScreen: Screen = {
     }
     reloadClients();
     if (feedPosts.length === 0 && activeAgent) loadFeed().catch(() => {});
+    // Check bird CLI availability for Twitter drafts (async to avoid blocking)
+    if (!twitterReady) {
+      setTimeout(() => {
+        try {
+          const check = birdCheck();
+          twitterReady = check.ok;
+          if (check.ok) log("tweet", `bird connected: @${check.user}`, "ok");
+        } catch { /* bird not installed or not configured */ }
+      }, 0);
+    }
   },
 
   onLeave() {
@@ -1028,6 +1119,7 @@ export const socialScreen: Screen = {
       log("post", `discarded draft on leave: "${pendingPost.title.slice(0, 30)}"`, "pending");
       pendingPost = null;
     }
+    if (pendingTweet) { pendingTweet = null; }
   },
 
   render() {
@@ -1081,6 +1173,23 @@ export const socialScreen: Screen = {
       }
     }
 
+    // Tweet approval — Y/N when pending tweet
+    if (pendingTweet && !pendingPost) {
+      if (key.name === "y" || key.name === "Y") {
+        const tweet = pendingTweet;
+        pendingTweet = null;
+        postTweet(tweet).catch((err) => { log("tweet", errMsg(err), "fail"); });
+        app.requestRender();
+        return;
+      }
+      if (key.name === "n" || key.name === "N") {
+        log("tweet", `discarded draft`, "pending");
+        pendingTweet = null;
+        app.requestRender();
+        return;
+      }
+    }
+
     if (key.name === "escape") { app.back(); return; }
 
     if (key.name === "tab") {
@@ -1128,6 +1237,14 @@ export const socialScreen: Screen = {
       return;
     }
 
+    // X key — generate Twitter draft from top-performing Moltbook content
+    if (key.name === "x" || key.name === "X") {
+      if (!twitterReady) { log("tweet", "bird CLI not configured — set AUTH_TOKEN + CT0", "fail"); return; }
+      if (feedPosts.length === 0) { log("tweet", "load feed first (press H)", "fail"); return; }
+      generateTwitterDraft().catch((err) => { log("tweet", errMsg(err), "fail"); });
+      return;
+    }
+
     if (key.name === "t" || key.name === "T") {
       if (view === "home" && feedPosts[feedIdx]) {
         const post = feedPosts[feedIdx]!;
@@ -1156,6 +1273,7 @@ export const socialScreen: Screen = {
           log("post", `discarded draft on agent switch: "${pendingPost.title.slice(0, 30)}"`, "pending");
           pendingPost = null;
         }
+        if (pendingTweet) { pendingTweet = null; }
         // Don't clear repliedCommentIds — all agents share the same Moltbook account
         // Don't clear engagedPostIds — re-commenting from same account is undesirable
         // stats accumulates across agents (lifetime totals) — intentional
