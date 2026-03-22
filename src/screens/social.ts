@@ -595,6 +595,58 @@ async function syncProfile() {
   }
 }
 
+// ── Auto-Learning from Engagement ──
+// Periodically checks agent's posts — learns from high and low performers
+
+const analyzedPostIds = new Set<string>();
+
+async function autoLearnFromEngagement() {
+  const client = getClient();
+  const zai = getZai();
+  if (!client || !zai || !activeAgent) return;
+
+  try {
+    const profile = await client.getProfile(activeAgent.name).catch(() => null);
+    const posts: MoltbookPost[] = profile?.recentPosts || [];
+    if (posts.length === 0) return;
+
+    // Only analyze posts we haven't seen yet
+    const newPosts = posts.filter(p => !analyzedPostIds.has(p.id));
+    if (newPosts.length === 0) return;
+
+    // Compute engagement threshold from all posts
+    const engagements = posts.map(p => (p.upvotes ?? 0) + (p.comment_count ?? 0));
+    const avg = engagements.reduce((a, b) => a + b, 0) / engagements.length;
+
+    for (const post of newPosts) {
+      analyzedPostIds.add(post.id);
+      const engagement = (post.upvotes ?? 0) + (post.comment_count ?? 0);
+
+      // High performer — learn what worked
+      if (engagement > avg * 1.5 && engagement >= 5) {
+        const insight = await zai.chatCompletion([
+          { role: "system", content: "Analyze why this social media post performed well. Respond with ONE concise lesson (under 80 chars) that can guide future posts. Format: 'Posts about X in Y style get engagement'. Just the lesson, nothing else." },
+          { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}` },
+        ], { maxTokens: 60 });
+        addLearning(activeAgent.id, { type: "prefer", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 4 });
+        log("learn", `auto: ${insight.trim().slice(0, 50)}`, "ok");
+      }
+
+      // Low performer — learn what to avoid
+      if (engagement < avg * 0.3 && posts.length >= 3) {
+        const insight = await zai.chatCompletion([
+          { role: "system", content: "Analyze why this social media post got low engagement. Respond with ONE concise lesson (under 80 chars) about what to avoid. Format: 'Avoid X because Y'. Just the lesson, nothing else." },
+          { role: "user", content: `Title: "${post.title}"\nContent: "${(post.content || "").slice(0, 200)}"\nUpvotes: ${post.upvotes ?? 0}, Comments: ${post.comment_count ?? 0}\nAverage engagement on this account: ${Math.round(avg)}` },
+        ], { maxTokens: 60 });
+        addLearning(activeAgent.id, { type: "avoid", lesson: insight.trim().slice(0, 80), context: `auto: ${post.title?.slice(0, 40)} (${engagement} engagement)`, strength: 3 });
+        log("learn", `auto-avoid: ${insight.trim().slice(0, 50)}`, "ok");
+      }
+    }
+  } catch (err) {
+    log("learn", errMsg(err), "fail");
+  }
+}
+
 // ── Twitter/X Draft Generation ──
 
 async function generateTwitterDraft() {
@@ -665,6 +717,7 @@ const INTERVALS = {
   heartbeat: 10,  // minutes between home checks (Moltbook recommends 30, we use 10 for UI freshness)
   engageEvery: 2, // every N heartbeats (20 min)
   postEvery: 4,   // every N heartbeats (40 min, safely above 30-min limit)
+  learnEvery: 3,  // every N heartbeats (30 min) — analyze post performance
 };
 
 // Persistent rate limit state — survives restarts
@@ -757,7 +810,8 @@ function startAgent() {
     // Moltbook priority: 1) respond to activity, 2) engage with others, 3) post (last)
     await checkHome().catch(() => {}); // replies to activity on our posts
     if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {}); // upvote + comment
-    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); } // post original (only when inspired)
+    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); }
+    if (tick % INTERVALS.learnEvery === 0) await autoLearnFromEngagement().catch(() => {}); // analyze what works
   }, INTERVALS.heartbeat * 60 * 1000);
   app.requestRender();
 }
