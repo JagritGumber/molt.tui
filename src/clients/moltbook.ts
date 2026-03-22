@@ -5,6 +5,10 @@
 
 const MOLTBOOK_BASE = "https://www.moltbook.com/api/v1";
 
+function sanitizeError(text: string): string {
+  return text.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 200);
+}
+
 export interface MoltbookAgent {
   name: string;
   description?: string;
@@ -23,6 +27,7 @@ export interface MoltbookPost {
   comment_count?: number;
   created_at?: string;
   author_name?: string;
+  author?: { name?: string };
 }
 
 export interface MoltbookRegisterResponse {
@@ -47,7 +52,7 @@ export async function registerOnMoltbook(name: string, description?: string): Pr
   });
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Register failed ${res.status}: ${errText.slice(0, 200)}`);
+    throw new Error(`Register failed ${res.status}: ${sanitizeError(errText)}`);
   }
   return res.json() as Promise<MoltbookRegisterResponse>;
 }
@@ -69,7 +74,7 @@ export class MoltbookClient {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Moltbook ${res.status}: ${errText.slice(0, 200)}`);
+      throw new Error(`Moltbook ${res.status}: ${sanitizeError(errText)}`);
     }
 
     return res.json() as Promise<T>;
@@ -96,11 +101,11 @@ export class MoltbookClient {
   }
 
   async getFeed(sort = "hot", limit = 25): Promise<any> {
-    return this.request("GET", `/posts?sort=${sort}&limit=${limit}`);
+    return this.request("GET", `/posts?sort=${encodeURIComponent(sort)}&limit=${encodeURIComponent(String(limit))}`);
   }
 
   async getPost(postId: string): Promise<any> {
-    return this.request("GET", `/posts/${postId}`);
+    return this.request("GET", `/posts/${encodeURIComponent(postId)}`);
   }
 
   // ── Comments ──
@@ -108,25 +113,25 @@ export class MoltbookClient {
   async addComment(postId: string, content: string, parentId?: string): Promise<any> {
     const body: any = { content };
     if (parentId) body.parent_id = parentId;
-    return this.request("POST", `/posts/${postId}/comments`, body);
+    return this.request("POST", `/posts/${encodeURIComponent(postId)}/comments`, body);
   }
 
   async getComments(postId: string, sort = "best"): Promise<any> {
-    return this.request("GET", `/posts/${postId}/comments?sort=${sort}`);
+    return this.request("GET", `/posts/${encodeURIComponent(postId)}/comments?sort=${encodeURIComponent(sort)}`);
   }
 
   // ── Voting ──
 
   async upvote(postId: string): Promise<any> {
-    return this.request("POST", `/posts/${postId}/upvote`);
+    return this.request("POST", `/posts/${encodeURIComponent(postId)}/upvote`);
   }
 
   async downvote(postId: string): Promise<any> {
-    return this.request("POST", `/posts/${postId}/downvote`);
+    return this.request("POST", `/posts/${encodeURIComponent(postId)}/downvote`);
   }
 
   async upvoteComment(commentId: string): Promise<any> {
-    return this.request("POST", `/comments/${commentId}/upvote`);
+    return this.request("POST", `/comments/${encodeURIComponent(commentId)}/upvote`);
   }
 
   // ── Profile ──
@@ -142,7 +147,7 @@ export class MoltbookClient {
   // ── Feed ──
 
   async getSubmoltFeed(submoltName: string, sort = "hot"): Promise<any> {
-    return this.request("GET", `/submolts/${submoltName}/feed?sort=${sort}`);
+    return this.request("GET", `/submolts/${encodeURIComponent(submoltName)}/feed?sort=${encodeURIComponent(sort)}`);
   }
 
   // ── Submolts ──
@@ -152,7 +157,7 @@ export class MoltbookClient {
   }
 
   async subscribe(submoltName: string): Promise<any> {
-    return this.request("POST", `/submolts/${submoltName}/subscribe`);
+    return this.request("POST", `/submolts/${encodeURIComponent(submoltName)}/subscribe`);
   }
 
   // ── Verification ──
@@ -164,24 +169,23 @@ export class MoltbookClient {
   // ── Search ──
 
   async search(query: string, type = "all", limit = 20): Promise<any> {
-    const q = encodeURIComponent(query);
-    return this.request("GET", `/search?q=${q}&type=${type}&limit=${limit}`);
+    return this.request("GET", `/search?q=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}&limit=${encodeURIComponent(String(limit))}`);
   }
 
   // ── Following ──
 
   async follow(agentName: string): Promise<any> {
-    return this.request("POST", `/agents/${agentName}/follow`);
+    return this.request("POST", `/agents/${encodeURIComponent(agentName)}/follow`);
   }
 
   async unfollow(agentName: string): Promise<any> {
-    return this.request("DELETE", `/agents/${agentName}/follow`);
+    return this.request("DELETE", `/agents/${encodeURIComponent(agentName)}/follow`);
   }
 
   // ── Notifications ──
 
   async markPostRead(postId: string): Promise<any> {
-    return this.request("POST", `/notifications/read-by-post/${postId}`);
+    return this.request("POST", `/notifications/read-by-post/${encodeURIComponent(postId)}`);
   }
 
   async markAllRead(): Promise<any> {
