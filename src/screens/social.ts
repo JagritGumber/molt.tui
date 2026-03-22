@@ -479,14 +479,8 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
 // ── Verification Solver ──
 // Deterministic parser first (no LLM hallucination), LLM fallback with improved prompt
 
-function deobfuscate(text: string): string {
-  let clean = text
-    .replace(/[^a-zA-Z0-9\s]/g, "")  // strip ALL non-alphanumeric
-    .replace(/\s+/g, " ")
-    .toLowerCase()
-    .trim();
-  // Fix shattered words — fuzzy match number words that got split/mangled
-  const fuzzyNums: Array<[RegExp, string]> = [
+// Pre-compiled fuzzy patterns — fixes shattered number words from obfuscation
+const FUZZY_NUMS: Array<[RegExp, string]> = [
     [/\bze\s*r\s*o\b/g, "zero"], [/\bo\s*n\s*e\b/g, "one"], [/\btw\s*o\b/g, "two"],
     [/\bth\s*r\s*e+\b/g, "three"], [/\bfo\s*u?\s*r\b/g, "four"], [/\bfi\s*v\s*e?\b/g, "five"],
     [/\bsi\s*x\b/g, "six"], [/\bse\s*v\s*e?\s*n\b/g, "seven"], [/\bei\s*g?\s*h?\s*t\b/g, "eight"],
@@ -506,9 +500,16 @@ function deobfuscate(text: string): string {
     [/\bsl\s*o\s*w\s*s?\b/g, "slows"], [/\bsp\s*e+\s*d\b/g, "speed"],
     [/\bve\s*l\s*[ao]?\s*[wc]?\s*i?\s*t\s*[ye]+\b/g, "velocity"],
     [/\bfo\s*r\s*c\s*e?\s*[is]?\b/g, "force"], [/\bto\s*t\s*a?\s*l\b/g, "total"],
-    [/\bne\s*w\b/g, "new"],
-  ];
-  for (const [pat, replacement] of fuzzyNums) {
+  [/\bne\s*w\b/g, "new"],
+];
+
+function deobfuscate(text: string): string {
+  let clean = text
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+  for (const [pat, replacement] of FUZZY_NUMS) {
     clean = clean.replace(pat, replacement);
   }
   return clean.replace(/\s+/g, " ").trim();
