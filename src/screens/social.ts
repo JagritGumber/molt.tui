@@ -2,7 +2,7 @@
 // Agent posts, comments, upvotes autonomously. User monitors, corrects, teaches.
 
 import { app, type Screen } from "../tui/app.ts";
-import { cursor, fg, bg, style, write, getTermSize, stripAnsi, visibleLength } from "../tui/ansi.ts";
+import { cursor, fg, bg, style, write, getTermSize, stripAnsi, visibleLength, termWidth } from "../tui/ansi.ts";
 import { drawHR, getSpinnerFrame } from "../tui/components.ts";
 import { listAgents, type AgentPersonality } from "../agents/personality.ts";
 import { loadConfig, type Config } from "../utils/config.ts";
@@ -139,10 +139,22 @@ function writeClipped(text: string, maxCol: number, startCol: number) {
   const avail = maxCol - startCol;
   if (avail <= 0) return;
   const visible = stripAnsi(text);
-  if (visible.length <= avail) {
-    write(text + " ".repeat(avail - visible.length) + style.reset);
+  const vw = termWidth(visible);
+  if (vw <= avail) {
+    write(text + " ".repeat(avail - vw) + style.reset);
   } else {
-    write(visible.slice(0, avail) + style.reset);
+    // Truncate by terminal columns, not JS length
+    let cols = 0;
+    let end = 0;
+    for (let i = 0; i < visible.length; ) {
+      const cp = visible.codePointAt(i)!;
+      const cw = cp < 0x7F ? 1 : termWidth(String.fromCodePoint(cp));
+      if (cols + cw > avail) break;
+      cols += cw;
+      i += cp > 0xFFFF ? 2 : 1;
+      end = i;
+    }
+    write(visible.slice(0, end) + " ".repeat(avail - cols) + style.reset);
   }
 }
 
@@ -834,9 +846,10 @@ function renderDivider(col: number, maxRows: number) {
 
 function renderRight(startCol: number, w: number, maxRows: number) {
   let row = 2;
+  const maxCol = startCol + w;
 
   cursor.to(row, startCol);
-  write(`${fg.gray}${style.bold} Activity${style.reset}\x1b[K`);
+  writeClipped(`${fg.gray}${style.bold} Activity${style.reset}`, maxCol, startCol);
   row++;
 
   const maxLines = maxRows - row - 1;
@@ -844,14 +857,14 @@ function renderRight(startCol: number, w: number, maxRows: number) {
     const idx = activityScroll + i;
     cursor.to(row + i, startCol);
     if (idx >= activityLog.length) {
-      write("\x1b[K");
+      writeClipped("", maxCol, startCol);
       continue;
     }
     const entry = activityLog[idx]!;
     const icon = entry.status === "ok" ? `${fg.brightGreen}✓` : entry.status === "fail" ? `${fg.brightRed}✗` : `${fg.brightYellow}◑`;
     const color = ACTION_COLORS[entry.action] || fg.gray;
-    const detail = entry.detail.slice(0, w - 14);
-    write(` ${fg.gray}${entry.time} ${icon}${color} ${entry.action.slice(0, 5)}${style.reset} ${fg.white}${detail}${style.reset}\x1b[K`);
+    const detail = entry.detail.slice(0, w - 16);
+    writeClipped(` ${fg.gray}${entry.time} ${icon}${color} ${entry.action.slice(0, 5)}${style.reset} ${fg.white}${detail}`, maxCol, startCol);
   }
 }
 
