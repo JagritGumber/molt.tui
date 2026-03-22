@@ -85,9 +85,10 @@ export class ZaiClient {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+        timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
         const res = await fetch(`${ZAI_BASE}/chat/completions`, {
           method: "POST",
           headers: {
