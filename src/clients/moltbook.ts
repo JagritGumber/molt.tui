@@ -182,7 +182,15 @@ export class MoltbookClient {
     return this.request("DELETE", `/agents/${encodeURIComponent(agentName)}/follow`);
   }
 
+  async unsubscribe(submoltName: string): Promise<any> {
+    return this.request("DELETE", `/submolts/${encodeURIComponent(submoltName)}/subscribe`);
+  }
+
   // ── Notifications ──
+
+  async getNotifications(): Promise<any> {
+    return this.request("GET", "/notifications");
+  }
 
   async markPostRead(postId: string): Promise<any> {
     return this.request("POST", `/notifications/read-by-post/${encodeURIComponent(postId)}`);
