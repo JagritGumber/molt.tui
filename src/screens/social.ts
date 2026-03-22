@@ -244,7 +244,7 @@ async function loadMyPosts() {
   try {
     // Primary: getProfile returns agent's own posts
     const profile = await client.getProfile(activeAgent.name).catch(() => null);
-    const profilePosts: MoltbookPost[] = profile?.posts || profile?.agent?.posts || [];
+    const profilePosts: MoltbookPost[] = profile?.recentPosts || profile?.posts || profile?.agent?.posts || [];
     if (profilePosts.length > 0) {
       myPosts = profilePosts;
       myPostIdx = 0;
