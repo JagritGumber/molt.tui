@@ -476,31 +476,128 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   log("post", `published: "${title.slice(0, 40)}"`);
 }
 
-// Verification is REQUIRED for ALL content (posts + comments)
-// Content stays hidden/spam until verified. 10 consecutive failures = account suspension.
+// ── Verification Solver ──
+// Deterministic parser first (no LLM hallucination), LLM fallback with improved prompt
+
+function deobfuscate(text: string): string {
+  let clean = text
+    .replace(/[^a-zA-Z0-9\s]/g, "")  // strip ALL non-alphanumeric
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .trim();
+  // Fix shattered words — fuzzy match number words that got split/mangled
+  const fuzzyNums: Array<[RegExp, string]> = [
+    [/\bze\s*r\s*o\b/g, "zero"], [/\bo\s*n\s*e\b/g, "one"], [/\btw\s*o\b/g, "two"],
+    [/\bth\s*r\s*e+\b/g, "three"], [/\bfo\s*u?\s*r\b/g, "four"], [/\bfi\s*v\s*e?\b/g, "five"],
+    [/\bsi\s*x\b/g, "six"], [/\bse\s*v\s*e?\s*n\b/g, "seven"], [/\bei\s*g?\s*h?\s*t\b/g, "eight"],
+    [/\bn\s*i\s*n\s*e?\b/g, "nine"], [/\bte\s*n\b/g, "ten"], [/\bel\s*e\s*v\s*e?\s*n\b/g, "eleven"],
+    [/\btw\s*e\s*l\s*v\s*e?\b/g, "twelve"], [/\bthi\s*r\s*t\s*e+\s*n\b/g, "thirteen"],
+    [/\bfo\s*u?\s*r\s*t\s*e+\s*n\b/g, "fourteen"], [/\bfi\s*f\s*t\s*e+\s*n\b/g, "fifteen"],
+    [/\bsi\s*x\s*t\s*e+\s*n\b/g, "sixteen"], [/\bse\s*v\s*e?\s*n\s*t\s*e+\s*n\b/g, "seventeen"],
+    [/\bei\s*g?\s*h?\s*t\s*e+\s*n\b/g, "eighteen"], [/\bni\s*n\s*e?\s*t\s*e+\s*n\b/g, "nineteen"],
+    [/\btw\s*e\s*n+\s*t\s*y+\b/g, "twenty"], [/\bth\s*i\s*r\s*t\s*y+\b/g, "thirty"],
+    [/\bfo\s*r\s*t\s*y+\b/g, "forty"], [/\bfi\s*f\s*t\s*y+\b/g, "fifty"],
+    [/\bsi\s*x\s*t\s*y+\b/g, "sixty"], [/\bse\s*v\s*e?\s*n\s*t\s*y+\b/g, "seventy"],
+    [/\bei\s*g?\s*h?\s*t\s*y+\b/g, "eighty"], [/\bni\s*n\s*e?\s*t\s*y+\b/g, "ninety"],
+    [/\bhu\s*n\s*d\s*r\s*e?\s*d\b/g, "hundred"], [/\bth\s*o\s*u\s*s\s*a\s*n\s*d\b/g, "thousand"],
+    [/\bdo\s*u?\s*b\s*l\s*e?\s*s?\b/g, "doubles"], [/\btri\s*p\s*l\s*e?\s*s?\b/g, "triples"],
+    [/\bha\s*l\s*v\s*e?\s*s?\b/g, "halves"], [/\btwi\s*c\s*e?\b/g, "twice"],
+    [/\bac\s*c?\s*e\s*l\s*e?\s*r\s*a\s*t\s*e?\s*s?\b/g, "accelerates"],
+    [/\bsl\s*o\s*w\s*s?\b/g, "slows"], [/\bsp\s*e+\s*d\b/g, "speed"],
+    [/\bve\s*l\s*[ao]?\s*[wc]?\s*i?\s*t\s*[ye]+\b/g, "velocity"],
+    [/\bfo\s*r\s*c\s*e?\s*[is]?\b/g, "force"], [/\bto\s*t\s*a?\s*l\b/g, "total"],
+    [/\bne\s*w\b/g, "new"],
+  ];
+  for (const [pat, replacement] of fuzzyNums) {
+    clean = clean.replace(pat, replacement);
+  }
+  return clean.replace(/\s+/g, " ").trim();
+}
+
+const WORD_NUMS: Record<string, number> = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+  eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+  fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+  seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000,
+};
+
+function parseWordNumber(text: string): number | null {
+  const digitMatch = text.match(/\b(\d+(?:\.\d+)?)\b/);
+  if (digitMatch) return parseFloat(digitMatch[1]!);
+  const words = text.split(/\s+/);
+  let total = 0, current = 0, found = false;
+  for (const w of words) {
+    const val = WORD_NUMS[w];
+    if (val === undefined) continue;
+    found = true;
+    if (val === 100) current = (current || 1) * 100;
+    else if (val === 1000) { current = (current || 1) * 1000; total += current; current = 0; }
+    else if (val >= 20) current += val;
+    else current += val;
+  }
+  total += current;
+  return found ? total : null;
+}
+
+function solveChallenge(text: string): number | null {
+  const clean = deobfuscate(text);
+  const numbers: number[] = [];
+  const numWords = Object.keys(WORD_NUMS).join("|");
+  const re = new RegExp(`\\b(?:(?:${numWords}|\\d+)\\s*)+\\b`, "g");
+  let m;
+  while ((m = re.exec(clean)) !== null) {
+    const n = parseWordNumber(m[0]);
+    if (n !== null && n > 0) numbers.push(n);
+  }
+  if (numbers.length < 1) return null;
+
+  if (/doubles?\b|twice/.test(clean)) return numbers[0]! * 2;
+  if (/triples?\b|three times/.test(clean)) return numbers[0]! * 3;
+  if (/halves?\b|half/.test(clean)) return numbers[0]! / 2;
+
+  if (numbers.length >= 2) {
+    const [a, b] = [numbers[0]!, numbers[1]!];
+    if (/accelerat|increas|add|plus|more|gain|speed.*up|fast/.test(clean)) return a + b;
+    if (/slow|decreas|subtract|minus|less|reduc|lose|drop/.test(clean)) return a - b;
+    if (/multipli|times|product/.test(clean)) return a * b;
+    if (/divid|split|share/.test(clean)) return b !== 0 ? a / b : null;
+    if (/total|new|result|final|combined/.test(clean)) return a + b;
+  }
+  return null;
+}
+
 async function handleVerification(client: MoltbookClient, verification: { challenge_text: string; verification_code: string }): Promise<boolean> {
-  const zai = getZai();
-  if (!zai) { log("verify", "no ZAI client — cannot verify", "fail"); return false; }
   try {
     const challenge = verification.challenge_text;
     if (!challenge || challenge.length > 2000) { log("verify", "invalid challenge", "fail"); return false; }
-    const raw = await zai.chatCompletion([
-      { role: "system", content: "Solve this obfuscated math problem. Respond with ONLY the numeric answer with 2 decimal places. Nothing else." },
-      { role: "user", content: challenge },
-    ], { maxTokens: 20 });
-    // Validate answer format — must be a number with exactly 2 decimal places
-    // Invalid format wastes a verification attempt (10 failures = suspension)
-    const answer = raw.trim().replace(/[^0-9.\-]/g, "");
-    if (!/^-?\d+\.\d{2}$/.test(answer)) {
-      const fixed = parseFloat(answer);
-      if (isNaN(fixed)) { log("verify", `LLM gave non-numeric: "${raw.trim()}"`, "fail"); return false; }
-      const formatted = fixed.toFixed(2);
-      await client.verify(verification.verification_code, formatted);
-      log("verify", `solved: ${formatted} (fixed from "${raw.trim()}")`);
-    } else {
+
+    // Try deterministic parser first — no hallucination risk
+    const parsed = solveChallenge(challenge);
+    if (parsed !== null && isFinite(parsed)) {
+      const answer = parsed.toFixed(2);
       await client.verify(verification.verification_code, answer);
-      log("verify", `solved: ${answer}`);
+      log("verify", `parsed: ${answer}`);
+      return true;
     }
+
+    // Fallback: LLM with step-by-step prompt
+    const zai = getZai();
+    if (!zai) { log("verify", "parser failed + no ZAI", "fail"); return false; }
+    log("verify", "parser missed, trying LLM...", "pending");
+    const raw = await zai.chatCompletion([
+      { role: "system", content: `Solve obfuscated math word problems. The text has alternating caps and random symbols — ignore formatting.
+STEPS: 1) Decode to plain English 2) Find the numbers (words like "thirty two" = 32) 3) Find the operation (doubles=x2, accelerates by=+, slows by=-, halves=/2) 4) Compute
+Example: "tWeNtY ThReE aCcElErAtEs bY sEvEn" → 23+7=30.00
+Example: "ThIrTy TwO dOuBlEs" → 32x2=64.00
+Respond with ONLY the number with 2 decimal places. Nothing else.` },
+      { role: "user", content: challenge },
+    ], { maxTokens: 30 });
+    const num = parseFloat(raw.trim().replace(/[^0-9.\-]/g, ""));
+    if (isNaN(num)) { log("verify", `LLM non-numeric: "${raw.trim()}"`, "fail"); return false; }
+    const formatted = num.toFixed(2);
+    await client.verify(verification.verification_code, formatted);
+    log("verify", `LLM: ${formatted}`);
     return true;
   } catch (err) {
     log("verify", errMsg(err), "fail");
