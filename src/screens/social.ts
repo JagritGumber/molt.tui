@@ -5,11 +5,13 @@ import { app, type Screen } from "../tui/app.ts";
 import { cursor, fg, bg, style, write, getTermSize, stripAnsi, visibleLength, termWidth } from "../tui/ansi.ts";
 import { drawHR, getSpinnerFrame } from "../tui/components.ts";
 import { listAgents, type AgentPersonality } from "../agents/personality.ts";
-import { loadConfig, type Config } from "../utils/config.ts";
+import { loadConfig, getConfigDir, ensureDirs, type Config } from "../utils/config.ts";
 import { MoltbookClient, type MoltbookPost } from "../clients/moltbook.ts";
 import { ZaiClient, type PersonalityPrompt } from "../clients/zai.ts";
 import { buildLearningPrompt, addLearning } from "../agents/learnings.ts";
 import type { KeyEvent } from "../tui/input.ts";
+import { join } from "path";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 
 // ── State ──
 
@@ -40,6 +42,7 @@ interface HomeData {
   activity_on_your_posts?: Array<{ post_id: string; post_title: string }>;
   your_direct_messages?: { pending_request_count?: number; unread_message_count?: number };
   posts_from_accounts_you_follow?: MoltbookPost[];
+  what_to_do_next?: Array<{ suggestion: string }>;
 }
 let homeData: HomeData | null = null;
 
@@ -405,6 +408,7 @@ async function autoPost() {
   const persona = getPersonality();
   if (!zai || !client || !persona) { log("post", "missing config", "fail"); return; }
   if (approvalMode && pendingPost) { log("post", "draft pending — approve or reject first", "pending"); return; }
+  if (!canPost()) { log("post", "cooldown — 30 min between posts", "pending"); return; }
 
   try {
     log("post", "generating...", "pending");
@@ -422,6 +426,15 @@ async function autoPost() {
 
     const content = await zai.generatePost(persona, topicHint);
     const title = await zai.generatePostTitle(content);
+
+    // Moltbook best practice: search before posting to avoid duplicates
+    const dupeCheck = await client.search(title.slice(0, 80), "posts", 5).catch(() => null);
+    const existing = dupeCheck?.posts || dupeCheck?.results || [];
+    if (existing.some((p: MoltbookPost) => p.title?.toLowerCase() === title.toLowerCase())) {
+      log("post", `duplicate found — skipping: "${title.slice(0, 30)}"`, "pending");
+      return;
+    }
+
     const submolt = activeAgent?.submolts[Math.floor(Math.random() * (activeAgent?.submolts.length || 1))] || "general";
 
     // #10 If approval mode, queue for user review
@@ -448,6 +461,7 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   }
 
   stats.postsCreated++;
+  markPosted();
   // #6 Track topic keyword (not full title) to avoid repeating
   if (topicHint) {
     recentPostTopics.push(topicHint.toLowerCase());
@@ -481,7 +495,7 @@ async function handleVerification(client: MoltbookClient, verification: { challe
 // Post a comment with verification handling + rate limiting
 async function postComment(client: MoltbookClient, postId: string, content: string, parentId?: string): Promise<boolean> {
   if (!canComment()) {
-    log("comment", `rate limited (${dailyCommentCount}/${MAX_DAILY_COMMENTS} today)`, "pending");
+    log("comment", `rate limited (${loadRateState().commentCount}/${MAX_DAILY_COMMENTS} today)`, "pending");
     return false;
   }
   const result = await client.addComment(postId, content, parentId);
@@ -568,33 +582,74 @@ async function syncProfile() {
 // ── Agent Control ──
 
 // #5 Configurable intervals — respect Moltbook rate limits:
-//   Posts: 1 per 30 min (we use 35 min = 7 heartbeats × 5 min)
-//   Comments: 20s cooldown, 50/day max
+//   Heartbeat: recommended every 30 min (we use 10 min for responsive UI, but throttle writes)
+//   Posts: 1 per 30 min (we post every 4th heartbeat = 40 min)
+//   Engagement: every 2nd heartbeat = 20 min
+//   Comments: 20s cooldown, 50/day max (enforced by canComment())
+//   Read rate limit: 60 req/min (heartbeat is well under)
+//   Write rate limit: 30 req/min (spread across actions)
 const INTERVALS = {
-  heartbeat: 5,  // minutes between home checks
-  engageEvery: 2, // every N heartbeats
-  postEvery: 7,   // every N heartbeats (35 min, safely above 30-min limit)
+  heartbeat: 10,  // minutes between home checks (Moltbook recommends 30, we use 10 for UI freshness)
+  engageEvery: 2, // every N heartbeats (20 min)
+  postEvery: 4,   // every N heartbeats (40 min, safely above 30-min limit)
 };
 
-// Comment rate limiting — Moltbook: 20s cooldown, 50/day
-let dailyCommentCount = 0;
-let lastCommentTime = 0;
-const COMMENT_COOLDOWN_MS = 22_000; // 22s (2s margin over 20s)
-const MAX_DAILY_COMMENTS = 45; // 5 under 50 for safety
-let dailyResetDate = new Date().toDateString();
+// Persistent rate limit state — survives restarts
+// Stored in ~/.moltui/ratelimit.json so the bot can't accidentally spam after restart
+
+interface RateLimitState {
+  date: string;           // YYYY-MM-DD — resets daily counters
+  commentCount: number;   // comments today
+  lastCommentMs: number;  // epoch ms of last comment
+  lastPostMs: number;     // epoch ms of last post
+}
+
+const RATE_FILE = join(getConfigDir(), "ratelimit.json");
+const COMMENT_COOLDOWN_MS = 22_000; // 22s (2s margin over 20s Moltbook limit)
+const POST_COOLDOWN_MS = 35 * 60 * 1000; // 35 min (5 min margin over 30 min limit)
+const MAX_DAILY_COMMENTS = 45; // 5 under 50 Moltbook limit
+
+function loadRateState(): RateLimitState {
+  ensureDirs();
+  const today = new Date().toISOString().slice(0, 10);
+  if (existsSync(RATE_FILE)) {
+    try {
+      const s = JSON.parse(readFileSync(RATE_FILE, "utf-8")) as RateLimitState;
+      if (s.date === today) return s;
+      // New day — reset counters, keep timestamps
+      return { date: today, commentCount: 0, lastCommentMs: s.lastCommentMs, lastPostMs: s.lastPostMs };
+    } catch { /* corrupt file — reset */ }
+  }
+  return { date: today, commentCount: 0, lastCommentMs: 0, lastPostMs: 0 };
+}
+
+function saveRateState(s: RateLimitState) {
+  try { writeFileSync(RATE_FILE, JSON.stringify(s)); } catch { /* non-fatal */ }
+}
 
 function canComment(): boolean {
-  // Reset daily counter at midnight
-  const today = new Date().toDateString();
-  if (today !== dailyResetDate) { dailyCommentCount = 0; dailyResetDate = today; }
-  if (dailyCommentCount >= MAX_DAILY_COMMENTS) return false;
-  if (Date.now() - lastCommentTime < COMMENT_COOLDOWN_MS) return false;
+  const s = loadRateState();
+  if (s.commentCount >= MAX_DAILY_COMMENTS) return false;
+  if (Date.now() - s.lastCommentMs < COMMENT_COOLDOWN_MS) return false;
   return true;
 }
 
 function markCommented() {
-  dailyCommentCount++;
-  lastCommentTime = Date.now();
+  const s = loadRateState();
+  s.commentCount++;
+  s.lastCommentMs = Date.now();
+  saveRateState(s);
+}
+
+function canPost(): boolean {
+  const s = loadRateState();
+  return Date.now() - s.lastPostMs >= POST_COOLDOWN_MS;
+}
+
+function markPosted() {
+  const s = loadRateState();
+  s.lastPostMs = Date.now();
+  saveRateState(s);
 }
 
 function delay(ms: number): Promise<void> {
@@ -626,9 +681,10 @@ function startAgent() {
   let tick = 0;
   heartbeatTimer = setInterval(async () => {
     tick++;
-    await checkHome().catch(() => {});
-    if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {});
-    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); }
+    // Moltbook priority: 1) respond to activity, 2) engage with others, 3) post (last)
+    await checkHome().catch(() => {}); // replies to activity on our posts
+    if (tick % INTERVALS.engageEvery === 0) await autoEngage().catch(() => {}); // upvote + comment
+    if (tick % INTERVALS.postEvery === 0) { await autoPost().catch(() => {}); await loadFeed().catch(() => {}); } // post original (only when inspired)
   }, INTERVALS.heartbeat * 60 * 1000);
   app.requestRender();
 }
