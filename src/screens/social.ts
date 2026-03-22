@@ -85,7 +85,7 @@ let stats: AgentStats = { postsCreated: 0, commentsWritten: 0, upvotesGiven: 0, 
 
 // #10 Post approval mode
 let approvalMode = false;
-let pendingPost: { title: string; content: string; submolt: string } | null = null;
+let pendingPost: { title: string; content: string; submolt: string; topicHint?: string } | null = null;
 
 function evictOldest(set: Set<string>, max: number, keepLast: number) {
   if (set.size > max) {
@@ -388,6 +388,7 @@ async function autoPost() {
   const client = getClient();
   const persona = getPersonality();
   if (!zai || !client || !persona) { log("post", "missing config", "fail"); return; }
+  if (approvalMode && pendingPost) { log("post", "draft pending — approve or reject first", "pending"); return; }
 
   try {
     log("post", "generating...", "pending");
@@ -409,19 +410,19 @@ async function autoPost() {
 
     // #10 If approval mode, queue for user review
     if (approvalMode) {
-      pendingPost = { title, content, submolt };
+      pendingPost = { title, content, submolt, topicHint };
       log("post", `draft ready — Y approve, N reject`, "pending");
       app.requestRender();
       return;
     }
 
-    await publishPost(client, title, content, submolt);
+    await publishPost(client, title, content, submolt, topicHint);
   } catch (err) {
     log("post", errMsg(err), "fail");
   }
 }
 
-async function publishPost(client: MoltbookClient, title: string, content: string, submolt: string) {
+async function publishPost(client: MoltbookClient, title: string, content: string, submolt: string, topicHint?: string) {
   log("post", `draft: "${title.slice(0, 40)}"`, "pending");
   const result = await client.createPost({ submolt_name: submolt, title, content });
 
@@ -430,9 +431,11 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   }
 
   stats.postsCreated++;
-  // #6 Track topic to avoid repeating
-  recentPostTopics.push(title.toLowerCase());
-  if (recentPostTopics.length > MAX_RECENT_TOPICS) recentPostTopics.shift();
+  // #6 Track topic keyword (not full title) to avoid repeating
+  if (topicHint) {
+    recentPostTopics.push(topicHint.toLowerCase());
+    if (recentPostTopics.length > MAX_RECENT_TOPICS) recentPostTopics.shift();
+  }
 
   log("post", `published: "${title.slice(0, 40)}"`);
 }
@@ -891,24 +894,7 @@ export const socialScreen: Screen = {
   },
 
   onKey(key: KeyEvent) {
-    // #10 Post approval handling — Y/N when pending
-    if (pendingPost) {
-      if (key.name === "y" || key.name === "Y") {
-        const post = pendingPost;
-        pendingPost = null;
-        const client = getClient();
-        if (client) publishPost(client, post.title, post.content, post.submolt).catch((err) => { log("post", errMsg(err), "fail"); });
-        app.requestRender();
-        return;
-      }
-      if (key.name === "n" || key.name === "N") {
-        log("post", `rejected: "${pendingPost.title.slice(0, 30)}"`, "pending");
-        pendingPost = null;
-        app.requestRender();
-        return;
-      }
-    }
-
+    // Learning mode takes priority — don't intercept Y/N for pending post
     if (learningMode) {
       if (key.name === "escape") {
         learningMode = false;
@@ -934,6 +920,24 @@ export const socialScreen: Screen = {
         app.requestRender();
       }
       return;
+    }
+
+    // #10 Post approval handling — Y/N when pending (after learning mode check)
+    if (pendingPost) {
+      if (key.name === "y" || key.name === "Y") {
+        const post = pendingPost;
+        pendingPost = null;
+        const client = getClient();
+        if (client) publishPost(client, post.title, post.content, post.submolt, post.topicHint).catch((err) => { log("post", errMsg(err), "fail"); });
+        app.requestRender();
+        return;
+      }
+      if (key.name === "n" || key.name === "N") {
+        log("post", `rejected: "${pendingPost.title.slice(0, 30)}"`, "pending");
+        pendingPost = null;
+        app.requestRender();
+        return;
+      }
     }
 
     if (key.name === "escape") { app.back(); return; }
