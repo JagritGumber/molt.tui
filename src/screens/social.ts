@@ -199,7 +199,10 @@ async function loadMyPosts() {
     const allPosts: MoltbookPost[] = result?.posts || result?.results || result?.data || [];
     const name = activeAgent.name.toLowerCase();
     myPosts = allPosts.filter((p) => getAuthorName(p).toLowerCase() === name);
-    if (myPosts.length === 0 && allPosts.length > 0) myPosts = allPosts;
+    if (myPosts.length === 0 && allPosts.length > 0) {
+      log("posts", "author filter miss — may include others", "pending");
+      myPosts = allPosts;
+    }
     myPostIdx = 0;
     log("posts", `found ${myPosts.length} posts`);
   } catch (err) {
