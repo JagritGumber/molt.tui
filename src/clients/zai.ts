@@ -69,7 +69,7 @@ async function readSSEStream(body: ReadableStream<Uint8Array>): Promise<string> 
 export class ZaiClient {
   constructor(
     private apiKey: string,
-    private model: string = "glm-4.7-flash"
+    private model: string = "GLM-4.7-FlashX"
   ) {}
 
   async chatCompletion(messages: ZaiMessage[], opts?: { temperature?: number; maxTokens?: number }): Promise<string> {
@@ -86,6 +86,8 @@ export class ZaiClient {
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
         const res = await fetch(`${ZAI_BASE}/chat/completions`, {
           method: "POST",
           headers: {
@@ -93,7 +95,9 @@ export class ZaiClient {
             Authorization: `Bearer ${this.apiKey}`,
           },
           body: JSON.stringify(body),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
 
         if (!res.ok && !isRetryable(res.status)) {
           const errText = await res.text();
