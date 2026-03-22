@@ -600,7 +600,7 @@ const ACTION_COLORS: Record<string, string> = {
 
 function renderScreen() {
   const { rows, cols } = getTermSize();
-  const rightW = Math.max(25, Math.min(35, Math.floor(cols / 3)));
+  const rightW = Math.max(30, Math.min(45, Math.floor(cols * 2 / 5)));
   const leftW = cols - rightW - 1;
   const divCol = leftW + 1;
 
@@ -863,9 +863,15 @@ function renderRight(startCol: number, w: number, maxRows: number) {
     const entry = activityLog[idx]!;
     // ASCII icons — Unicode ✓/✗/◑ are ambiguous-width and overflow in some terminals
     const icon = entry.status === "ok" ? `${fg.brightGreen}+` : entry.status === "fail" ? `${fg.brightRed}!` : `${fg.brightYellow}~`;
+    const TAG: Record<string, string> = {
+      post: "P", reply: "R", comment: "C", upvote: "U", engage: "E",
+      home: "H", agent: "A", verify: "V", feed: "F", posts: "P",
+      learn: "L", follow: "F", sub: "S", dm: "D", profile: "B", stats: "X",
+    };
     const color = ACTION_COLORS[entry.action] || fg.gray;
-    const detail = entry.detail.slice(0, w - 16);
-    writeClipped(` ${fg.gray}${entry.time} ${icon}${color} ${entry.action.slice(0, 5)}${style.reset} ${fg.white}${detail}`, maxCol, startCol);
+    const tag = TAG[entry.action] || entry.action[0]?.toUpperCase() || "?";
+    const detail = entry.detail.slice(0, w - 13);
+    writeClipped(` ${fg.gray}${entry.time}${icon}${color}[${tag}]${style.reset} ${fg.white}${detail}`, maxCol, startCol);
   }
 }
 
