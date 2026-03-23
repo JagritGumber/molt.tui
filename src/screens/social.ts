@@ -460,7 +460,7 @@ async function publishPost(client: MoltbookClient, title: string, content: strin
   log("post", `draft: "${title.slice(0, 40)}"`, "pending");
   const result = await client.createPost({ submolt_name: submolt, title, content });
 
-  if (result?.verification_required && result?.post?.verification) {
+  if (result?.post?.verification) {
     const ok = await handleVerification(client, result.post.verification);
     if (!ok) { log("post", "verification failed — post may be hidden/spam", "fail"); markPosted(); return; }
   }
@@ -614,7 +614,7 @@ async function postComment(client: MoltbookClient, postId: string, content: stri
   }
   const result = await client.addComment(postId, content, parentId);
   // Handle verification if required — must verify BEFORE marking as commented
-  if (result?.verification_required && result?.comment?.verification) {
+  if (result?.comment?.verification) {
     const ok = await handleVerification(client, result.comment.verification);
     if (!ok) { log("verify", "comment verification failed — may be hidden", "fail"); return false; }
   }
