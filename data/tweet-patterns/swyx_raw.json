@@ -1,0 +1,741 @@
+[
+  {
+    "id": "2036352119222182127",
+    "text": "i challenge you to find a single kernelwriting infra company this cracked and this confident that they can do this all entirely open catch up and its both immediately useful and ~nobody can catch up (if someone does, they still win because Mojo)",
+    "createdAt": "Tue Mar 24 07:59:13 +0000 2026",
+    "replyCount": 14,
+    "retweetCount": 5,
+    "likeCount": 159,
+    "conversationId": "2036352119222182127",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2036319753736954126",
+      "text": "@Zyyon_ Please don’t tell anyone: we aren’t just open sourcing all the models. We are doing the unspeakable: open sourcing all the gpu kernels too. Making them run on multivendor consumer hardware, and opening the door to folks who can beat our work.\n\nPlz keep it quiet, ok? 😉",
+      "createdAt": "Tue Mar 24 05:50:36 +0000 2026",
+      "replyCount": 7,
+      "retweetCount": 59,
+      "likeCount": 938,
+      "conversationId": "2036157129527062672",
+      "inReplyToStatusId": "2036157129527062672",
+      "author": {
+        "username": "clattner_llvm",
+        "name": "Chris Lattner"
+      },
+      "authorId": "2543588034"
+    }
+  },
+  {
+    "id": "2036337043475931340",
+    "text": "in AINews I posted my take on the Dreamer x Meta execuhire today and what it means for the 9 month anniversary of Zuck's \"Personal Superintelligence\" manifesto: \n\n- Vibes\n- Manus\n- Dreamer\n\nWhat will MSL Apps have to show by year end? Who else will they acquire? I'm taking predictions.",
+    "createdAt": "Tue Mar 24 06:59:19 +0000 2026",
+    "replyCount": 13,
+    "retweetCount": 0,
+    "likeCount": 14,
+    "conversationId": "2036337043475931340",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2035107381936562645",
+      "text": "🆕 Dreamer and the Agent App Store Future https://t.co/olYTtMbaOh\n\n@dps has built platforms at massive scale from Android and @Google early mobile ecosystem to serving as CTO of @stripe. Now he's co-founding @dreamer w/@hbarra. In this episode, David explains why Dreamer is built around a personal “Sidekick” that helps users discover, build, and use agents, why the real opportunity is creating the full stack for agentic apps, and why the next big platform may look less like a chatbot and more like an operating system for personal software.",
+      "createdAt": "Fri Mar 20 21:33:04 +0000 2026",
+      "replyCount": 1,
+      "retweetCount": 2,
+      "likeCount": 11,
+      "conversationId": "2035107381936562645",
+      "author": {
+        "username": "latentspacepod",
+        "name": "Latent.Space"
+      },
+      "authorId": "1670869422733393966",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2035107183625740288/img/EqAE85uYjDOQ5h5h.jpg",
+          "width": 1920,
+          "height": 1080,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2035107183625740288/img/EqAE85uYjDOQ5h5h.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2035107183625740288/vid/avc1/1920x1080/_S4gJ_yy1sSXa5Nf.mp4",
+          "durationMs": 47850
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEKFtPNaIAQ6FT6.jpg",
+        "width": 1274,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HEKFtPNaIAQ6FT6.jpg:small"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEKFvu3bQAAGpor.jpg",
+        "width": 1305,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HEKFvu3bQAAGpor.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2036205006806982931",
+    "text": "the pattern is clear:\n\ncome on @latentspacepod /@aiDotEngineer , get billions thrown at you by @alexandr_wang and @natfriedman \n\n(congrats) https://t.co/h15jEG8zUS",
+    "createdAt": "Mon Mar 23 22:14:39 +0000 2026",
+    "replyCount": 18,
+    "retweetCount": 2,
+    "likeCount": 104,
+    "conversationId": "2036205006806982931",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2036156505138012473",
+      "text": "Excited to announce that @hbarra , @alcor and I are joining Meta Superintelligence Labs with the entire @Dreamer team today.\n\nThe last few months have been extraordinary: we built Dreamer, put the beta in the world just a month ago, and saw magic come to life for real people. Since then, thousands of people have used Dreamer to build personal, intelligent software with our Sidekick in the world’s newest and most popular programming language: English!\n\nThey're building and sharing agents to manage email, calendar, and to-do’s, create learning tools for their kids, learn new languages, plan trips with friends, become better cooks, help them with work, achieve their health goals, or simply to creatively express themselves—all sorts of surprising and uniquely personal needs. These are agents as unique as the people building them, because they're built exactly the way each person wants them to be. We’ve captured some of our favorites at https://t.co/G6nrHTsN5i.\n\nWhat matters most here isn’t the early momentum; it’s what Dreamer has enabled people to do. People are building things they’ve wanted for years. They’re solving real, important problems no traditional software company would ever prioritize, because they’re too niche, too bespoke, too personal. What company would ever build for an “n of 1”?\n\nOur bet from the beginning has been that software should be personal, malleable, and shaped by the person using it. The constraint was never people’s imagination. It was the fact that building software is out of reach for most people. This early chapter gives us conviction that the idea resonates, the need is real, and the moment is now.\n\n@alexandr_wang  was helpful to us from the very beginning, and when we showed Dreamer to Mark Zuckerberg and @natfriedman earlier this year, it was clear right away that we share the same vision of the future: one where billions of people have the power to create software that makes their lives better. We’re thrilled to accelerate this mission by joining Meta Superintelligence Labs and licensing our technology to Meta. Read more at https://t.co/KvmdoPJVbU.\n\nDeeply grateful to our investors @jillchase124  and @ninaachadjian for supporting our vision for a more personal, creative, and intelligent future for software. Thank you for the trust, the thought partnership, and for being in our corner at every step.\n\nTo everyone in our community who built with us: thank you. You've taught us what's possible, and you're the proof this works. We're so grateful, and we're just getting started!",
+      "createdAt": "Mon Mar 23 19:01:55 +0000 2026",
+      "replyCount": 86,
+      "retweetCount": 36,
+      "likeCount": 584,
+      "conversationId": "2036156505138012473",
+      "author": {
+        "username": "dps",
+        "name": "David Singleton"
+      },
+      "authorId": "1387901",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEHhGRBaIAEh_yM.jpg",
+          "width": 2048,
+          "height": 1676,
+          "previewUrl": "https://pbs.twimg.com/media/HEHhGRBaIAEh_yM.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEINqacaAAAQqal.jpg",
+        "width": 1290,
+        "height": 1803,
+        "previewUrl": "https://pbs.twimg.com/media/HEINqacaAAAQqal.jpg:small"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEINqafbUAA9Ynl.jpg",
+        "width": 1290,
+        "height": 1122,
+        "previewUrl": "https://pbs.twimg.com/media/HEINqafbUAA9Ynl.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2036161815013630063",
+    "text": "fun fact: Alap is so good at pitching he got me to quit finance. When he presented @Sentieo while i was still working in my hedge fund, I walked him out to the elevators and asked him for a job. \n\nSentieo was my first startup job, and my 3rd attempt at applying \"ai\" to finance applications. We even got a Patent! (i left before i could get my name on it)\n\nNow that @dsiroker has wound down Rewind, LittleBird is the presumptive successor. Context is still king, and Alap and much of the old Sentieo team are getting back together to solve it.",
+    "createdAt": "Mon Mar 23 19:23:01 +0000 2026",
+    "replyCount": 11,
+    "retweetCount": 1,
+    "likeCount": 75,
+    "conversationId": "2036161815013630063",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2036127551202935050",
+      "text": "Information overload keeps getting worse, we all understand the negative impact on our well being. Today’s AI represents the first time software intelligence is advanced enough to give users the ability to push back and manage this information overload. That’s why we’re building Littlebird.\n\nAn AI that genuinely guards your time and attention needs to understand your whole life. Where you spend your time. Who you care about. What matters and what doesn't. What's changing day to day and what's front and center right now. Simple integrations won’t suffice, they miss too much.\n\nWe built Littlebird to be the first full context AI. It views your screen the same way you do, which means it better understands how you think, has a world model of much of what you know and can connect the dots across your entire life and day. Add a recorder for meeting notes and your spoken thoughts and you have a true full context AI.\n\nThe upside is a genuine thought partner that truly knows you. For our team and early users, this has been transformational to our productivity, our relationships and our mental clarity.\n\nWe’re excited to officially launch today and announce our $11M raise. Come check us out at https://t.co/AGZVp4XXhs",
+      "createdAt": "Mon Mar 23 17:06:52 +0000 2026",
+      "replyCount": 5,
+      "retweetCount": 10,
+      "likeCount": 78,
+      "conversationId": "2036127551202935050",
+      "author": {
+        "username": "alapshah1",
+        "name": "Alap Shah"
+      },
+      "authorId": "68869403"
+    }
+  },
+  {
+    "id": "2036137401425551667",
+    "text": "this @latentspacepod is getting lots of love https://t.co/Sput3EU7Uc",
+    "createdAt": "Mon Mar 23 17:46:00 +0000 2026",
+    "replyCount": 8,
+    "retweetCount": 0,
+    "likeCount": 28,
+    "conversationId": "2036137401425551667",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2036128584176447514",
+      "text": "Must watch for anyone in love with Claude CoWork. Killer pod from the guys @latentspacepod and @felixrieseberg https://t.co/0Fm8fyhloZ",
+      "createdAt": "Mon Mar 23 17:10:58 +0000 2026",
+      "replyCount": 1,
+      "retweetCount": 2,
+      "likeCount": 5,
+      "conversationId": "2036128584176447514",
+      "author": {
+        "username": "RobertDMellish",
+        "name": "Dave Mellish"
+      },
+      "authorId": "1707367365607141377",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEHIKFgbAAAaLU0.jpg",
+          "width": 640,
+          "height": 456,
+          "previewUrl": "https://pbs.twimg.com/media/HEHIKFgbAAAaLU0.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEHP-HWakAAJ8RT.jpg",
+        "width": 1632,
+        "height": 1558,
+        "previewUrl": "https://pbs.twimg.com/media/HEHP-HWakAAJ8RT.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2035879529340932413",
+    "text": "Reupping the @devinai explainer now that everyone is suddenly loving kloud koding because @ryancarson said so\n\n(btw devin usage has grown &gt;50% MoM every month this year, it has shocked even scott) https://t.co/7hGCELdLhW",
+    "createdAt": "Mon Mar 23 00:41:19 +0000 2026",
+    "replyCount": 30,
+    "retweetCount": 11,
+    "likeCount": 118,
+    "conversationId": "2035879529340932413",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "1965183240899285111",
+      "text": "@cognition new post on joining Cognition at it's $10b Series C: \n\nThe Devin is in the Details\n\nhttps://t.co/Me9lMJgZG0",
+      "createdAt": "Mon Sep 08 22:39:30 +0000 2025",
+      "replyCount": 8,
+      "retweetCount": 4,
+      "likeCount": 150,
+      "conversationId": "1965183110016098617",
+      "inReplyToStatusId": "1965183110016098617",
+      "author": {
+        "username": "swyx",
+        "name": "swyx"
+      },
+      "authorId": "33521530"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEDlpFeboAA5xNN.jpg",
+        "width": 1671,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HEDlpFeboAA5xNN.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034893748916953450",
+    "text": "this talk was 2.5 years ago\n\ni might never top my 2023 record in terms of prediction value per item of what i wrote/spoke about. insane run. https://t.co/ztUg0MsSgf",
+    "createdAt": "Fri Mar 20 07:24:10 +0000 2026",
+    "replyCount": 32,
+    "retweetCount": 1,
+    "likeCount": 75,
+    "conversationId": "2034893748916953450",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2034835318722240911",
+      "text": "@swyx I had an idea the other day for an AI project to look at the transcripts of all the top podcasts and newsletters and see who has been best at predicting things. Tricky but could be super fun.",
+      "createdAt": "Fri Mar 20 03:32:00 +0000 2026",
+      "replyCount": 7,
+      "retweetCount": 0,
+      "likeCount": 15,
+      "conversationId": "2034833969204928781",
+      "inReplyToStatusId": "2034833969204928781",
+      "author": {
+        "username": "lennysan",
+        "name": "Lenny Rachitsky"
+      },
+      "authorId": "7958322"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD1k-hwaMAAfX08.jpg",
+        "width": 1790,
+        "height": 1398,
+        "previewUrl": "https://pbs.twimg.com/media/HD1k-hwaMAAfX08.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034833969204928781",
+    "text": "lol\n\nlmao, even https://t.co/SonUroNO09",
+    "createdAt": "Fri Mar 20 03:26:38 +0000 2026",
+    "replyCount": 16,
+    "retweetCount": 0,
+    "likeCount": 39,
+    "conversationId": "2034833969204928781",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2034764840808718768",
+      "text": "SCOOP - OpenAI is planning to simplify its product experience and launch one \"superapp\" -- part of its broader effort to instill more discipline and focus into the business, and beat back the threat posed by Anthropic\n\nmore here in our @WSJ story\n\nhttps://t.co/MnO4YsiwBx",
+      "createdAt": "Thu Mar 19 22:51:56 +0000 2026",
+      "replyCount": 19,
+      "retweetCount": 18,
+      "likeCount": 317,
+      "conversationId": "2034764840808718768",
+      "author": {
+        "username": "berber_jin1",
+        "name": "Berber Jin"
+      },
+      "authorId": "982150212587159552"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD0utdkboAAz55t.jpg",
+        "width": 945,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HD0utdkboAAz55t.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034802359470330249",
+    "text": "to: every single dev that works with a designer\n\nmsg: Give your designer access to your coding agent. It is imperative that you do so. You'll see the most productivity and beauty in your work in a month. And then you'll realize just how much -you- were holding them back this entire time.",
+    "createdAt": "Fri Mar 20 01:21:01 +0000 2026",
+    "replyCount": 31,
+    "retweetCount": 5,
+    "likeCount": 85,
+    "conversationId": "2034802359470330249",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD0R0LDboAIIocB.jpg",
+        "width": 2048,
+        "height": 1858,
+        "previewUrl": "https://pbs.twimg.com/media/HD0R0LDboAIIocB.jpg:small"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD0R4Tya8AAWy9I.jpg",
+        "width": 1826,
+        "height": 1420,
+        "previewUrl": "https://pbs.twimg.com/media/HD0R4Tya8AAWy9I.jpg:small"
+      },
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD0R75_akAEm6a8.jpg",
+        "width": 1960,
+        "height": 1526,
+        "previewUrl": "https://pbs.twimg.com/media/HD0R75_akAEm6a8.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034667846505214295",
+    "text": "btw emerging consensus is that identity-based authz for ai is the most important solution for security, esp if you want to break the binary decision between HITL-everything and —dangerously-skip-permissions\n\nkeycard is the leading voice in this and now supports all koding agents",
+    "createdAt": "Thu Mar 19 16:26:31 +0000 2026",
+    "replyCount": 41,
+    "retweetCount": 13,
+    "likeCount": 207,
+    "conversationId": "2034667846505214295",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2034655777047077051",
+      "text": "Your coding agents inherit your credentials and your permissions. No identity system in the stack can tell the difference between you and the agent acting in your name.\n\nToday: Keycard for Coding Agents 🧵 https://t.co/ebnG0Y5SKD",
+      "createdAt": "Thu Mar 19 15:38:33 +0000 2026",
+      "replyCount": 4,
+      "retweetCount": 15,
+      "likeCount": 160,
+      "conversationId": "2034655777047077051",
+      "author": {
+        "username": "KeycardLabs",
+        "name": "Keycard"
+      },
+      "authorId": "1868823246809792512",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HDyMpOFa4AAtm3S.jpg",
+          "width": 1200,
+          "height": 675,
+          "previewUrl": "https://pbs.twimg.com/media/HDyMpOFa4AAtm3S.jpg:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2034530082644177180",
+    "text": "trust @reckless to put the seo slop at the end haahahahhahaa hero\n\nand yes at work we have one of those fancy wifi printers with screens and doodads and it has worked exactly 1 time out of the ~10 times ive tried to print something. https://t.co/meFYPebfUo",
+    "createdAt": "Thu Mar 19 07:19:06 +0000 2026",
+    "replyCount": 11,
+    "retweetCount": 0,
+    "likeCount": 21,
+    "conversationId": "2034530082644177180",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2034464486459854918",
+      "text": "@uncledoomer Verge printer recommendation article always relevant https://t.co/FUZ3E5TmLP",
+      "createdAt": "Thu Mar 19 02:58:26 +0000 2026",
+      "replyCount": 2,
+      "retweetCount": 4,
+      "likeCount": 226,
+      "conversationId": "2034430611289518341",
+      "inReplyToStatusId": "2034430611289518341",
+      "author": {
+        "username": "castform51",
+        "name": "castform5"
+      },
+      "authorId": "1360397589330481152"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDwaU-MbwAAM9NH.jpg",
+        "width": 945,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HDwaU-MbwAAM9NH.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034348118267891734",
+    "text": "im getting absolutely mogged by @tmtlongshort fml https://t.co/Ryg5HIR6FR",
+    "createdAt": "Wed Mar 18 19:16:02 +0000 2026",
+    "replyCount": 6,
+    "retweetCount": 2,
+    "likeCount": 15,
+    "conversationId": "2034348118267891734",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2034212482009469296",
+      "text": "PM for Claude Cowork….. sub-3k views https://t.co/G4sardlWO1",
+      "createdAt": "Wed Mar 18 10:17:04 +0000 2026",
+      "replyCount": 19,
+      "retweetCount": 23,
+      "likeCount": 765,
+      "conversationId": "2034212482009469296",
+      "author": {
+        "username": "TMTLongShort",
+        "name": "Just Another Pod Guy"
+      },
+      "authorId": "1227646314554548224",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HDr5dzPawAAT8N8.jpg",
+          "width": 1320,
+          "height": 1093,
+          "previewUrl": "https://pbs.twimg.com/media/HDr5dzPawAAT8N8.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDt0yP8WkAA9bN0.png",
+        "width": 562,
+        "height": 120,
+        "previewUrl": "https://pbs.twimg.com/media/HDt0yP8WkAA9bN0.png:small"
+      }
+    ]
+  },
+  {
+    "id": "2033790182755865001",
+    "text": "working on something big and need a design engineer!!\n\ni assume @emilkowalski is taken, but if you align with this sort of philosophy here please reach out. https://t.co/RnIt8VDvr8",
+    "createdAt": "Tue Mar 17 06:19:00 +0000 2026",
+    "replyCount": 37,
+    "retweetCount": 12,
+    "likeCount": 294,
+    "conversationId": "2033790182755865001",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDk0sa6bEAEUlF6.jpg",
+        "width": 1907,
+        "height": 1754,
+        "previewUrl": "https://pbs.twimg.com/media/HDk0sa6bEAEUlF6.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2033666752836759687",
+    "text": "caption this https://t.co/KlljBtCeFE",
+    "createdAt": "Mon Mar 16 22:08:32 +0000 2026",
+    "replyCount": 19,
+    "retweetCount": 3,
+    "likeCount": 61,
+    "conversationId": "2033666752836759687",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDkJIlCbEAAYn-H.jpg",
+        "width": 2048,
+        "height": 1056,
+        "previewUrl": "https://pbs.twimg.com/media/HDkJIlCbEAAYn-H.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2033645139550519631",
+    "text": "just realized the nice thing about having @GoogleDeepMind as presenting sponsor is i can literally do every damn thing i want to do in AI with one api key https://t.co/lxSPgbRNhj",
+    "createdAt": "Mon Mar 16 20:42:39 +0000 2026",
+    "replyCount": 12,
+    "retweetCount": 2,
+    "likeCount": 65,
+    "conversationId": "2033645139550519631",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2031421896789496250",
+      "text": "Introducing Gemini Embedding 2: Our first natively multimodal embedding model!\n\nBring text, images, video, audio and documents into a single embedding space. https://t.co/wxmsSfnvCN",
+      "createdAt": "Tue Mar 10 17:28:16 +0000 2026",
+      "replyCount": 2,
+      "retweetCount": 6,
+      "likeCount": 48,
+      "conversationId": "2031421896789496250",
+      "author": {
+        "username": "thorwebdev",
+        "name": "Thor 雷神 ⚡️"
+      },
+      "authorId": "2908098340",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2031420950403571714/img/Ab8ou5I26ZaZo8hj.jpg",
+          "width": 1920,
+          "height": 1080,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2031420950403571714/img/Ab8ou5I26ZaZo8hj.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2031420950403571714/vid/avc1/1920x1080/ELcs8O3Ahf9fabyP.mp4",
+          "durationMs": 37458
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDj1Y9HbEAEF8g9.jpg",
+        "width": 1704,
+        "height": 786,
+        "previewUrl": "https://pbs.twimg.com/media/HDj1Y9HbEAEF8g9.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2033618177452871789",
+    "text": "btw the @cognition growth formula is very simple:\n\nDevin growth = cloud komputer * koding agents growth\n\nmath it out. working on releasing some numbers soon",
+    "createdAt": "Mon Mar 16 18:55:30 +0000 2026",
+    "replyCount": 16,
+    "retweetCount": 0,
+    "likeCount": 78,
+    "conversationId": "2033618177452871789",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2033001588726600054",
+      "text": "i am not kidding around people\n\nhttps://t.co/6Fy7ie8HZb https://t.co/zSVTkjJPv4",
+      "createdAt": "Sun Mar 15 02:05:24 +0000 2026",
+      "replyCount": 6,
+      "retweetCount": 5,
+      "likeCount": 113,
+      "conversationId": "2032966857066688640",
+      "inReplyToStatusId": "2032966857066688640",
+      "author": {
+        "username": "swyx",
+        "name": "swyx"
+      },
+      "authorId": "33521530",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HDasK9NaMAAbeEx.jpg",
+          "width": 1290,
+          "height": 1358,
+          "previewUrl": "https://pbs.twimg.com/media/HDasK9NaMAAbeEx.jpg:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2033030744352993296",
+    "text": "i am actually still not over how Qwen as we knew it, one of the S tier Tigers, is over. https://t.co/Vj617GBDwv",
+    "createdAt": "Sun Mar 15 04:01:15 +0000 2026",
+    "replyCount": 32,
+    "retweetCount": 8,
+    "likeCount": 381,
+    "conversationId": "2033030744352993296",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDbGrHGaIAA89bW.jpg",
+        "width": 1280,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HDbGrHGaIAA89bW.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2032966857066688640",
+    "text": "btw every single compute infra provider’s chart, including render competitors, is looking like this. something broke in Dec 2025 and everything is becoming computer.\n\nforget GPU shortage, forget Memory shortage, the @fabknowledge pod on LS was right, there is going to be a CPU shortage",
+    "createdAt": "Sat Mar 14 23:47:24 +0000 2026",
+    "replyCount": 82,
+    "retweetCount": 50,
+    "likeCount": 984,
+    "conversationId": "2032966857066688640",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2032939764601729537",
+      "text": "This chart shows the number of paid services created on @render each week.\n\nWe're doing alright. https://t.co/HHZ0Y3U0im",
+      "createdAt": "Sat Mar 14 21:59:44 +0000 2026",
+      "replyCount": 22,
+      "retweetCount": 13,
+      "likeCount": 225,
+      "conversationId": "2032939764601729537",
+      "author": {
+        "username": "anuraggoel",
+        "name": "Anurag Goel"
+      },
+      "authorId": "14927721",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HDZzIB5aMAEHmXN.png",
+          "width": 628,
+          "height": 552,
+          "previewUrl": "https://pbs.twimg.com/media/HDZzIB5aMAEHmXN.png:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2032953028526088687",
+    "text": "*minimal representation of the MODAL human cultural artifact is a prompt…\n\n…severely raising the cost of any diversity and encouraging extreme monoculture to appease the machine god.\n\nyou do not want to see what happens when humanity unthinkingly submits to loss minimization, it will not be pretty. intelligence and individuality is a “use it or lose it” proposition right now.",
+    "createdAt": "Sat Mar 14 22:52:27 +0000 2026",
+    "replyCount": 11,
+    "retweetCount": 1,
+    "likeCount": 24,
+    "conversationId": "2032953028526088687",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2032853995790692793",
+      "text": "I think one of the conclusions we should draw from the tremendous success of LLMs is how much of human knowledge and society exists at very low levels of Kolmogorov complexity.\n\nWe are entering an era where the minimal representation of a human cultural artifact... (1/12)",
+      "createdAt": "Sat Mar 14 16:18:55 +0000 2026",
+      "replyCount": 191,
+      "retweetCount": 498,
+      "likeCount": 4535,
+      "conversationId": "2032853995790692793",
+      "author": {
+        "username": "getjonwithit",
+        "name": "Jonathan Gorard"
+      },
+      "authorId": "958374804"
+    }
+  },
+  {
+    "id": "2032905804987380164",
+    "text": "been saying this for 3 :) https://t.co/VhUfwkqD4F",
+    "createdAt": "Sat Mar 14 19:44:48 +0000 2026",
+    "replyCount": 31,
+    "retweetCount": 17,
+    "likeCount": 216,
+    "conversationId": "2032905804987380164",
+    "author": {
+      "username": "swyx",
+      "name": "swyx"
+    },
+    "authorId": "33521530",
+    "quotedTweet": {
+      "id": "2032802867615285500",
+      "text": "Been saying this for a year. Agentic AI is backend engineering far more than it is AI. This stands true for any technology, once you scale and abstract it enough, you’re only left with engineering problems. \n\nLearn\n> Event driven systems\n> Data pipelines\n> Distributed systems\n> API Design\n> Observability / monitoring",
+      "createdAt": "Sat Mar 14 12:55:45 +0000 2026",
+      "replyCount": 45,
+      "retweetCount": 110,
+      "likeCount": 1050,
+      "conversationId": "2032802867615285500",
+      "author": {
+        "username": "TheGlobalMinima",
+        "name": "Aarno"
+      },
+      "authorId": "1958970657649434628"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDZVDmebYAAOQrj.jpg",
+        "width": 1290,
+        "height": 1498,
+        "previewUrl": "https://pbs.twimg.com/media/HDZVDmebYAAOQrj.jpg:small"
+      }
+    ]
+  }
+]

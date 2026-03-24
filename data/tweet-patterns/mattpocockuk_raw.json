@@ -1,0 +1,307 @@
+[
+  {
+    "id": "2036399142008688976",
+    "text": "Working on a tool that orchestrates locally sandboxed coding agents in TypeScript\n\n- Sandboxed in Docker\n- 100% offline: commits made in the sandbox get patched back to the host\n- Build complex workflows in Typescript\n- Claude, Codex, OpenCode\n\nIt's called Sandcastle",
+    "createdAt": "Tue Mar 24 11:06:04 +0000 2026",
+    "replyCount": 46,
+    "retweetCount": 7,
+    "likeCount": 215,
+    "conversationId": "2036399142008688976",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2036096263683256409",
+    "text": "Claude Code tried to improve /init...\n\nIs it any better? https://t.co/s1WmU0Mdzy",
+    "createdAt": "Mon Mar 23 15:02:32 +0000 2026",
+    "replyCount": 24,
+    "retweetCount": 18,
+    "likeCount": 355,
+    "conversationId": "2036096263683256409",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "media": [
+      {
+        "type": "video",
+        "url": "https://pbs.twimg.com/amplify_video_thumb/2036094884285939712/img/HJ1DiaZTooyI2BFO.jpg",
+        "width": 1920,
+        "height": 1080,
+        "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2036094884285939712/img/HJ1DiaZTooyI2BFO.jpg:small",
+        "videoUrl": "https://video.twimg.com/amplify_video/2036094884285939712/vid/avc1/1920x1080/lCom0N2rRhCXyhTF.mp4",
+        "durationMs": 677400
+      }
+    ]
+  },
+  {
+    "id": "2036076132924100760",
+    "text": "My 'grill-me' skill went viral. mattpocock/skills is up to 9K stars. Quote tweets of it are doing numbers.\n\nIt's the most useful skill I've written, and I use it even outside of coding: https://t.co/hQXPan9oBT",
+    "createdAt": "Mon Mar 23 13:42:33 +0000 2026",
+    "replyCount": 74,
+    "retweetCount": 97,
+    "likeCount": 2329,
+    "conversationId": "2036076132924100760",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "media": [
+      {
+        "type": "video",
+        "url": "https://pbs.twimg.com/amplify_video_thumb/2036075956566454272/img/1CGkGy2XxCc3bnM-.jpg",
+        "width": 1920,
+        "height": 1080,
+        "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2036075956566454272/img/1CGkGy2XxCc3bnM-.jpg:small",
+        "videoUrl": "https://video.twimg.com/amplify_video/2036075956566454272/vid/avc1/1920x1080/8XVmHIJqcZto2nvx.mp4",
+        "durationMs": 167900
+      }
+    ]
+  },
+  {
+    "id": "2036010331370111340",
+    "text": "Folks who looked at my Claude Code cohort and didn't buy it:\n\nWhat stopped you?\n\nAll feedback is a gift. The more brutal, the better.\n\nhttps://t.co/Ur0ebWlIRl",
+    "createdAt": "Mon Mar 23 09:21:04 +0000 2026",
+    "replyCount": 132,
+    "retweetCount": 10,
+    "likeCount": 233,
+    "conversationId": "2036010331370111340",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2035054833753821667",
+    "text": "Started planning my talk and workshop for @aiDotEngineer Europe.\n\nThe timings have worked out perfectly so I have time to plan a really nice chunk of material.\n\nLooking forward to seeing you in London 🔥",
+    "createdAt": "Fri Mar 20 18:04:16 +0000 2026",
+    "replyCount": 4,
+    "retweetCount": 0,
+    "likeCount": 49,
+    "conversationId": "2035054833753821667",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2035010729838092320",
+    "text": ".@AnthropicAI bump",
+    "createdAt": "Fri Mar 20 15:09:01 +0000 2026",
+    "replyCount": 28,
+    "retweetCount": 6,
+    "likeCount": 282,
+    "conversationId": "2035010729838092320",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "quotedTweet": {
+      "id": "2033097741191028760",
+      "text": "Can I get some questions answered by someone at Anthropic?\n\n1. Can you use an OAuth token generated from a subscription to power the Claude Agent SDK strictly for using Claude Code in a local dev loop?\n\nAll I want is a more reliable API for parallelizing multiple Claude Code's.\n\n2. If I build an open source tool that relies on this pattern - i.e. for making parallelization easier - can I distribute it so that other people can use it?\n\nThe reason I'm asking is that the legal compliance docs and @trq212's public statements (below) appear to contradict.\n\nhttps://t.co/avHG1GLLM1",
+      "createdAt": "Sun Mar 15 08:27:29 +0000 2026",
+      "replyCount": 105,
+      "retweetCount": 21,
+      "likeCount": 699,
+      "conversationId": "2033097741191028760",
+      "author": {
+        "username": "mattpocockuk",
+        "name": "Matt Pocock"
+      },
+      "authorId": "346640777"
+    }
+  },
+  {
+    "id": "2034974175689916571",
+    "text": "I think that the best mental models for building software with AI were figured out 20 years before ChatGPT launched.\n\nThat's right, software fundamentals are more important than ever.\n\nOnly 3 days and 18 hours left to get 40% off my new course:\n\nhttps://t.co/HKZblkdpy9",
+    "createdAt": "Fri Mar 20 12:43:46 +0000 2026",
+    "replyCount": 14,
+    "retweetCount": 12,
+    "likeCount": 167,
+    "conversationId": "2034974175689916571",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2034971492258132135",
+    "text": "How confident are you using the phrase 'test boundary':",
+    "createdAt": "Fri Mar 20 12:33:06 +0000 2026",
+    "replyCount": 8,
+    "retweetCount": 0,
+    "likeCount": 13,
+    "conversationId": "2034971492258132135",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2034776654082363449",
+    "text": "Why did you start following me on X?",
+    "createdAt": "Thu Mar 19 23:38:53 +0000 2026",
+    "replyCount": 37,
+    "retweetCount": 0,
+    "likeCount": 45,
+    "conversationId": "2034776654082363449",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2034572011175907474",
+    "text": "Doing some experiments today with Opus 4.6's 1M context window.\n\nTrying to push coding sessions deep into what I would consider the 'dumb zone' of SOTA models: >100K tokens.\n\nThe drop-off in quality is really noticeable. Dumber decisions, worse code, worse instruction-following.\n\nDon't treat 1M context window any differently.\n\nIt's still 100K of smart, and 900K of dumb.",
+    "createdAt": "Thu Mar 19 10:05:42 +0000 2026",
+    "replyCount": 153,
+    "retweetCount": 60,
+    "likeCount": 1186,
+    "conversationId": "2034572011175907474",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2034274298915889604",
+    "text": "For weeks, folks have been asking me to make a video building a feature with Claude Code in a real codebase\n\nSo here you go:\n\n- From idea to AFK agent to QA\n- Every single step explained\n- No slop allowed https://t.co/DUGpIsNxmk",
+    "createdAt": "Wed Mar 18 14:22:42 +0000 2026",
+    "replyCount": 54,
+    "retweetCount": 108,
+    "likeCount": 1910,
+    "conversationId": "2034274298915889604",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "media": [
+      {
+        "type": "video",
+        "url": "https://pbs.twimg.com/amplify_video_thumb/2034270701801148416/img/YBpqSF8Ym4H598e3.jpg",
+        "width": 1920,
+        "height": 1080,
+        "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2034270701801148416/img/YBpqSF8Ym4H598e3.jpg:small",
+        "videoUrl": "https://video.twimg.com/amplify_video/2034270701801148416/vid/avc1/1920x1080/lm6bWikYhJ4r0EnT.mp4",
+        "durationMs": 2655700
+      }
+    ]
+  },
+  {
+    "id": "2033652157426123087",
+    "text": "Having this kind of doc in your repo absolutely ROCKS for keeping you and AI on the same wavelength\n\nCooking a /ubiquitous-language skill https://t.co/vyEUS4nwcQ",
+    "createdAt": "Mon Mar 16 21:10:32 +0000 2026",
+    "replyCount": 16,
+    "retweetCount": 11,
+    "likeCount": 268,
+    "conversationId": "2033652157426123087",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDj7v1JbEAcLYuL.png",
+        "width": 661,
+        "height": 884,
+        "previewUrl": "https://pbs.twimg.com/media/HDj7v1JbEAcLYuL.png:small"
+      }
+    ]
+  },
+  {
+    "id": "2033647563627212953",
+    "text": "I've been an engineer for nearly a decade. Right now, process has never been more important.\n\nAnd skills are the best way to bundle up processes for agents.\n\nHere are the 5 I use every day:\n\n/grill-me\n/write-a-prd\n/prd-to-issues\n/tdd\n/improve-my-codebase https://t.co/pD1fKkDxYw",
+    "createdAt": "Mon Mar 16 20:52:17 +0000 2026",
+    "replyCount": 67,
+    "retweetCount": 124,
+    "likeCount": 2481,
+    "conversationId": "2033647563627212953",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777",
+    "media": [
+      {
+        "type": "video",
+        "url": "https://pbs.twimg.com/amplify_video_thumb/2033645837360779264/img/FEuwGT-Xoydu6-pS.jpg",
+        "width": 1920,
+        "height": 1080,
+        "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2033645837360779264/img/FEuwGT-Xoydu6-pS.jpg:small",
+        "videoUrl": "https://video.twimg.com/amplify_video/2033645837360779264/vid/avc1/1920x1080/6FPe_yPHhstVpFIW.mp4",
+        "durationMs": 1001700
+      }
+    ]
+  },
+  {
+    "id": "2033574421563130048",
+    "text": "Everyone thinks AI is a paradigm shift.\n\nThat everything we've learned about building software in the last 20 years is for boomers.\n\nI disagree. That's why I built Claude Code for Real Engineers.\n\nIt's a 2-week cohort that teaches AI Coding from first principles, all the way from requirements gathering to delegating to AFK agents.\n\nIt's the best course I've ever built.\n\nIt starts in 2 weeks, and for this week only it's 40% off.\n\nhttps://t.co/PRTVBpP2oX",
+    "createdAt": "Mon Mar 16 16:01:38 +0000 2026",
+    "replyCount": 56,
+    "retweetCount": 27,
+    "likeCount": 518,
+    "conversationId": "2033574421563130048",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2033536848895558119",
+    "text": "I just invoked my own /ubiquitous-language skill and loved it\n\nDDD is coming for me",
+    "createdAt": "Mon Mar 16 13:32:20 +0000 2026",
+    "replyCount": 14,
+    "retweetCount": 1,
+    "likeCount": 124,
+    "conversationId": "2033536848895558119",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2033475487142494447",
+    "text": "What alternatives are there to docker sandbox for sandboxing Claude Code?\n\nIt's unreliable as hell on WSL.\n\n/sandbox doesn't do what I want - cc can always get around it and it doesn't allow for properly AFK workflows.",
+    "createdAt": "Mon Mar 16 09:28:30 +0000 2026",
+    "replyCount": 81,
+    "retweetCount": 8,
+    "likeCount": 129,
+    "conversationId": "2033475487142494447",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  },
+  {
+    "id": "2033097741191028760",
+    "text": "Can I get some questions answered by someone at Anthropic?\n\n1. Can you use an OAuth token generated from a subscription to power the Claude Agent SDK strictly for using Claude Code in a local dev loop?\n\nAll I want is a more reliable API for parallelizing multiple Claude Code's.\n\n2. If I build an open source tool that relies on this pattern - i.e. for making parallelization easier - can I distribute it so that other people can use it?\n\nThe reason I'm asking is that the legal compliance docs and @trq212's public statements (below) appear to contradict.\n\nhttps://t.co/avHG1GLLM1",
+    "createdAt": "Sun Mar 15 08:27:29 +0000 2026",
+    "replyCount": 105,
+    "retweetCount": 21,
+    "likeCount": 699,
+    "conversationId": "2033097741191028760",
+    "author": {
+      "username": "mattpocockuk",
+      "name": "Matt Pocock"
+    },
+    "authorId": "346640777"
+  }
+]
