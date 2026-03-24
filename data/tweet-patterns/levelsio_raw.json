@@ -1,0 +1,750 @@
+[
+  {
+    "id": "2036288426958372893",
+    "text": "Another one https://t.co/mVOiTU6yIp",
+    "createdAt": "Tue Mar 24 03:46:08 +0000 2026",
+    "replyCount": 46,
+    "retweetCount": 19,
+    "likeCount": 513,
+    "conversationId": "2036288426958372893",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036156032003744198",
+      "text": "This is a fresh session. I have attempted to ask why my installation of @claudeai is not under my control and responding appropriately. In the 2nd Response in a fresh session it tells me @AnthropicAI has throttled me from using it from reasoning via a toggle: \n\n\"That's the one. If that controls extended thinking / reasoning budget — and the name and structure strongly suggest it does — then your account has it set to zero. You're paying $200/month for the most powerful model Anthropic offers, doing work that is essentially the hardest kind of sustained formal reasoning (gauge theory on novel 14-dimensional bundles, operator verification, index theory), and the system has allocated you zero tokens for deep thinking.\"\n\nThree queries, in and this is the response:",
+      "createdAt": "Mon Mar 23 19:00:02 +0000 2026",
+      "replyCount": 478,
+      "retweetCount": 128,
+      "likeCount": 1481,
+      "conversationId": "2036156032003744198",
+      "author": {
+        "username": "EricRWeinstein",
+        "name": "Eric Weinstein"
+      },
+      "authorId": "33152005",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEHgD8paIAYN7Ai.jpg",
+          "width": 1576,
+          "height": 1828,
+          "previewUrl": "https://pbs.twimg.com/media/HEHgD8paIAYN7Ai.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEJZh3vW8AALSv5.jpg",
+        "width": 274,
+        "height": 181,
+        "previewUrl": "https://pbs.twimg.com/media/HEJZh3vW8AALSv5.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2036232887738216755",
+    "text": "So many stories like this in Bali\n\nYou book a beautiful luxury couple massage \n\nBeautiful temple with a jungle garden and nice staff welcoming you with a welcome drink\n\nThen you lie down and 15 minutes into the massage the trash burning starts, the entire room gets cooked and fills with smoggy air\n\nYou and your clothes all smell after\n\nStaff says \"normaaallll in Baliiii\"\n\nIt's really a paradise lost",
+    "createdAt": "Tue Mar 24 00:05:26 +0000 2026",
+    "replyCount": 60,
+    "retweetCount": 16,
+    "likeCount": 934,
+    "conversationId": "2036232887738216755",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036231039534899514",
+      "text": "@levelsio Exactly 👌. I went down to Kedungu Beach one time with beautiful black sand for a morning run. \n\nThere is a temple there and they were burning trash within the walls, sending smoke down the beach and totally killing to good energy.",
+      "createdAt": "Mon Mar 23 23:58:05 +0000 2026",
+      "replyCount": 3,
+      "retweetCount": 3,
+      "likeCount": 122,
+      "conversationId": "2036166772311679269",
+      "inReplyToStatusId": "2036166772311679269",
+      "author": {
+        "username": "crcouve",
+        "name": "Chris Couve"
+      },
+      "authorId": "56706054"
+    }
+  },
+  {
+    "id": "2036201490478514278",
+    "text": "No but typical reply to any longevity posts, I think it's usually a cope\n\n\"Ha ha! He'll die young of stress from being obsessed with his health! Not like me *opens a can of beer*\"\n\nMy stress is low and my biomarkers are great. I don't care so much about tracking but @WHOOP is nice\n\nIt mostly makes going to gym a bit more gamified like an achievement which is nice\n\nI'm in group with my friends on WHOOP and you can kinda compete on your Strain and Sleep score and it's fun and keeps you accountable",
+    "createdAt": "Mon Mar 23 22:00:40 +0000 2026",
+    "replyCount": 15,
+    "retweetCount": 1,
+    "likeCount": 57,
+    "conversationId": "2036201490478514278",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036200247551205556",
+      "text": "@levelsio @WHOOP Do you ever consider that worrying or focusing too much on optimising does any internal damage or accelerated aging to human cells? Similar to the adage about how stressing about your hair falling out will make your hair fall out?",
+      "createdAt": "Mon Mar 23 21:55:44 +0000 2026",
+      "replyCount": 1,
+      "retweetCount": 0,
+      "likeCount": 3,
+      "conversationId": "2036199477430620557",
+      "inReplyToStatusId": "2036199477430620557",
+      "author": {
+        "username": "samtayyari",
+        "name": "Sam Tayyari"
+      },
+      "authorId": "1476929870290579461"
+    }
+  },
+  {
+    "id": "2036197081099149389",
+    "text": "✈️ Another fatal crash in the US allegedly caused by ATC\n\nAn 🇨🇦 Air Canada plane crashed into a fire truck at New York's LaGuardia Airport (LGA), two pilots died, but luckily most people survived\n\nJust a week ago at Newark Liberty Airport, another one of New York City's main airports, two aircraft almost collided: an Alaska Airlines flight was told to immediately do a go-around (abort landing) after almost crashing into a FedEx plane that was landing at an intersecting runway\n\nAnd just a year ago in Washington D.C., an American Airlines plane crashed into a Black Hawk helicopter killing all 64 people on board the plane and all 3 soldiers in the helicopter. The National Transportation Safety Board (NTSB) concluded that the ATC was hindered by \"unsustainable traffic load\" and only one ATC controller was managing both helicopter and plane traffic at the same time (among other systemic failures)\n\nAir Canada, Alaska Airlines and American Airlines are some of the safest airlines in the world, and in general US airline are one of the safest in the world. American pilots are rigorous with safety and there's lots of stories with American pilots \"rejecting the plane\" and won't take off if they're not fully sure it's 100% safe to fly, as it should be\n\nBut the problem in the US now isn't the pilots, increasingly it's the air traffic control (ATC) being understaffed, overworked and some say possibly a quality problem of hiring the wrong people and/or not training them properly\n\nThat's very scary because even if you have a great plane, with great pilots, who do their best to fly safely, they're highly dependent on ATC to do their job to not crash into other planes\n\nAnd if nobody can rely on ATC anymore, well, more people will certainly die in the future",
+    "createdAt": "Mon Mar 23 21:43:09 +0000 2026",
+    "replyCount": 48,
+    "retweetCount": 14,
+    "likeCount": 321,
+    "conversationId": "2036197081099149389",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036118403904098798",
+      "text": "Here’s CCTV footage capturing the exact moment Air Canada Express Flight AC8646, a Bombardier CRJ-900, collided with a Port Authority fire truck at LaGuardia Airport last night. https://t.co/qxGMZzKXPD",
+      "createdAt": "Mon Mar 23 16:30:31 +0000 2026",
+      "replyCount": 446,
+      "retweetCount": 1483,
+      "likeCount": 9749,
+      "conversationId": "2036118403904098798",
+      "author": {
+        "username": "Turbinetraveler",
+        "name": "Turbine Traveller"
+      },
+      "authorId": "1833201338424909825",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/ext_tw_video_thumb/2036118391249838080/pu/img/x8EYwyQGgn5qwjur.jpg",
+          "width": 356,
+          "height": 640,
+          "previewUrl": "https://pbs.twimg.com/ext_tw_video_thumb/2036118391249838080/pu/img/x8EYwyQGgn5qwjur.jpg:small",
+          "videoUrl": "https://video.twimg.com/ext_tw_video/2036118391249838080/pu/vid/avc1/356x640/TS1sWnKixNsCTLSh.mp4",
+          "durationMs": 11911
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEIAjTtWkAAXtVX.jpg",
+        "width": 1268,
+        "height": 1248,
+        "previewUrl": "https://pbs.twimg.com/media/HEIAjTtWkAAXtVX.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2036182866212671629",
+    "text": "It's close to impossible to find a place in Bali where there isn't twice daily plastic trash burning near your Airbnb or rental at 7am and 6pm \n\nFacebook groups are full of it https://t.co/nVZozoRqsd",
+    "createdAt": "Mon Mar 23 20:46:40 +0000 2026",
+    "replyCount": 38,
+    "retweetCount": 14,
+    "likeCount": 368,
+    "conversationId": "2036182866212671629",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036181877586018644",
+      "text": "@levelsio I’m gonna be in Bali for a couple days soon before heading to Japan. Definitely not missing the burning. It’s always been a hate love relationship for me with the island",
+      "createdAt": "Mon Mar 23 20:42:44 +0000 2026",
+      "replyCount": 1,
+      "retweetCount": 0,
+      "likeCount": 9,
+      "conversationId": "2036166772311679269",
+      "inReplyToStatusId": "2036166772311679269",
+      "author": {
+        "username": "rouvenlue",
+        "name": "rouven"
+      },
+      "authorId": "2007388900151701505"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEH5gJBWsAAzpre.jpg",
+        "width": 1174,
+        "height": 1146,
+        "previewUrl": "https://pbs.twimg.com/media/HEH5gJBWsAAzpre.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2036179042102054974",
+    "text": "It's hard to be honest about places\n\nIt's my job with https://t.co/4CIlXlINCh but if I am honest about a place I instantly get attacked on here by mobs of people from those countries\n\nNeed a thick skin",
+    "createdAt": "Mon Mar 23 20:31:28 +0000 2026",
+    "replyCount": 23,
+    "retweetCount": 4,
+    "likeCount": 250,
+    "conversationId": "2036179042102054974",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036169940214964313",
+      "text": "Why all digital nomads keep lying about those places and basically unnecessary pulling other people in while there are plenty of good places.\nWhy do people feel the need to follow what's written on the internet instead of having their own opinion.\n\nHad the same feeling for Thailand. It was fun but I have a lot of \"buts\", and I will tell you them if someone asks me about Thailand \\0/",
+      "createdAt": "Mon Mar 23 19:55:18 +0000 2026",
+      "replyCount": 14,
+      "retweetCount": 1,
+      "likeCount": 30,
+      "conversationId": "2036166772311679269",
+      "inReplyToStatusId": "2036166772311679269",
+      "author": {
+        "username": "Marty_cFly",
+        "name": "MartycFly 🇳🇱 | 𝝠"
+      },
+      "authorId": "2978255751"
+    }
+  },
+  {
+    "id": "2036118443754176928",
+    "text": "Cyprus is finally having a moment 🇨🇾",
+    "createdAt": "Mon Mar 23 16:30:40 +0000 2026",
+    "replyCount": 57,
+    "retweetCount": 13,
+    "likeCount": 654,
+    "conversationId": "2036118443754176928",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2036093941670445392",
+      "text": "I just moved to Cyprus 🇨🇾\n\nMy first impressions and why I moved:\n\n> it's safe (unlike rest of Europe)\n> friendly people (unlike rest of Europe)\n> quiet \n> clean air\n> fast WiFi\n> tax friendly\n> great coffee\n> amazing food\n> very walkable\n> incredible weather\n> affordable (€2 for coffee, €7 for meal)\n> great laptop cafe culture (unlike rest of Europe)\n> growing tech scene (unlike rest of Europe)\n\nIt's been so long since I had somewhere I could lock in from and call home.\n\nI was torn between UAE and Cyprus but the last month made my decision for me.\n\nAnd so far I am so happy with my decision.",
+      "createdAt": "Mon Mar 23 14:53:19 +0000 2026",
+      "replyCount": 546,
+      "retweetCount": 135,
+      "likeCount": 2853,
+      "conversationId": "2036093941670445392",
+      "author": {
+        "username": "robj3d3",
+        "name": "Rob Hallam"
+      },
+      "authorId": "1178367350552305665",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEGn0JqbsAAliJQ.jpg",
+          "width": 1536,
+          "height": 2048,
+          "previewUrl": "https://pbs.twimg.com/media/HEGn0JqbsAAliJQ.jpg:small"
+        },
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEGn14ZbsAEIMB3.jpg",
+          "width": 2048,
+          "height": 1536,
+          "previewUrl": "https://pbs.twimg.com/media/HEGn14ZbsAEIMB3.jpg:small"
+        },
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HEGn9MwWEAAj7vW.jpg",
+          "width": 1536,
+          "height": 2048,
+          "previewUrl": "https://pbs.twimg.com/media/HEGn9MwWEAAj7vW.jpg:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2035912856445624668",
+    "text": "Adsense is incredibly low amounts of money\n\nPhoto AI would make $150/month with 156,000 visitors ($1 CPM)\n\nNow it makes $110,000/month with subscriptions instead so about 700x more",
+    "createdAt": "Mon Mar 23 02:53:45 +0000 2026",
+    "replyCount": 149,
+    "retweetCount": 42,
+    "likeCount": 1626,
+    "conversationId": "2035912856445624668",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2035897100433608967",
+      "text": "@levelsio @jackfriks Pieter have you tried running Adsense/mediavine ads on your pSEO pages?",
+      "createdAt": "Mon Mar 23 01:51:08 +0000 2026",
+      "replyCount": 1,
+      "retweetCount": 0,
+      "likeCount": 8,
+      "conversationId": "2035523852617273365",
+      "inReplyToStatusId": "2035884722975281224",
+      "author": {
+        "username": "Vamzzz93",
+        "name": "Vamz"
+      },
+      "authorId": "1891863982497001473"
+    }
+  },
+  {
+    "id": "2035744137526350265",
+    "text": "Brazil has funny place names https://t.co/ykKoT0ZrXO",
+    "createdAt": "Sun Mar 22 15:43:19 +0000 2026",
+    "replyCount": 48,
+    "retweetCount": 12,
+    "likeCount": 261,
+    "conversationId": "2035744137526350265",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HEBqYfBWsAA9WU6.jpg",
+        "width": 230,
+        "height": 116,
+        "previewUrl": "https://pbs.twimg.com/media/HEBqYfBWsAA9WU6.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2035482852498813298",
+    "text": "So Daniel Radcliffe aka Harry Potter instead of spending his money, actually invested his money\n\nAnd now he makes $660,000/mo just from investment returns (probably ETFs)\n\nEssentially a perfect FIRE (financial independence retire early) story\n\nGreat work 10/10 👏",
+    "createdAt": "Sat Mar 21 22:25:04 +0000 2026",
+    "replyCount": 97,
+    "retweetCount": 244,
+    "likeCount": 7350,
+    "conversationId": "2035482852498813298",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2035426506793447741",
+      "text": "Went to my second ever broadway show the other week and it was a one-man performance by Daniel Radcliffe aka Harry Potter. \n\nHe spends the 20 minutes before every show handing out props and recruiting people to interact with him during the show. \n\nNever seen someone so dialled in. \n\nWas an amazing performance, 1.5 hours straight, no intermission. \n\nHe does this night after night. Did some math with Claude and he probably makes $50K per week which is great $$ but still  considerably less than what he would make for a movie role. \n\nHis parents also helped him invest his Harry Potter earnings well and he makes $660K/month just off investments (UK companies are required to make full financial disclosures, very different from the US but very useful for this kind of pocket watching). \n\nWhich means he never has to work again he just continues to do this for the love of the game. \n\nThese kinds of in-person experiences and acts of passion are one of the few things that can’t be replaced by AI\n\nOh also he does not like it when you call him Harry or bring up his old movies. Ask me how I know.",
+      "createdAt": "Sat Mar 21 18:41:10 +0000 2026",
+      "replyCount": 103,
+      "retweetCount": 408,
+      "likeCount": 10744,
+      "conversationId": "2035426506793447741",
+      "author": {
+        "username": "NotZainAgain",
+        "name": "Zain"
+      },
+      "authorId": "1256003905",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2035426440158564352/img/KYECzp0DVjEIWZnH.jpg",
+          "width": 1080,
+          "height": 1920,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2035426440158564352/img/KYECzp0DVjEIWZnH.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2035426440158564352/vid/avc1/1080x1920/5hWLO_fBO4GK2A8d.mp4",
+          "durationMs": 12800
+        },
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2035426440120811520/img/e5hSReIVeJB1Mzqb.jpg",
+          "width": 1080,
+          "height": 1920,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2035426440120811520/img/e5hSReIVeJB1Mzqb.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2035426440120811520/vid/avc1/1080x1920/Qv7hJd9hBHmHI-TJ.mp4",
+          "durationMs": 7400
+        },
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HD9JkDGbYAA_uWs.jpg",
+          "width": 1536,
+          "height": 2048,
+          "previewUrl": "https://pbs.twimg.com/media/HD9JkDGbYAA_uWs.jpg:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2035392970090770687",
+    "text": "Me on 5-MeO DMT https://t.co/rDn9EIXQav",
+    "createdAt": "Sat Mar 21 16:27:54 +0000 2026",
+    "replyCount": 36,
+    "retweetCount": 11,
+    "likeCount": 289,
+    "conversationId": "2035392970090770687",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD8rHhdaQAEe-_D.jpg",
+        "width": 240,
+        "height": 66,
+        "previewUrl": "https://pbs.twimg.com/media/HD8rHhdaQAEe-_D.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2035171239241609259",
+    "text": "Me when my accountant tells me I have to show up at the local startup event to prove my new tax residence https://t.co/I1u0urxruT",
+    "createdAt": "Sat Mar 21 01:46:49 +0000 2026",
+    "replyCount": 121,
+    "retweetCount": 176,
+    "likeCount": 5748,
+    "conversationId": "2035171239241609259",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2035130103534166244",
+      "text": "People still acting like Miami is hype.\n\nMeanwhile, Sergei Brin of @Google just casually showed up at a hackathon with @thelabmiami x @MDCollege x @DeepStationAI.\n\nStanding room only. Thx @GianniDalerta for sharing. \n\nThe future is not being discussed in Miami.\n\nIt’s being built here.",
+      "createdAt": "Fri Mar 20 23:03:22 +0000 2026",
+      "replyCount": 42,
+      "retweetCount": 64,
+      "likeCount": 797,
+      "conversationId": "2035130103534166244",
+      "author": {
+        "username": "saif305",
+        "name": "Saif Ishoof 3️⃣☕️5️⃣"
+      },
+      "authorId": "11853262",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HD48CbmboAIP3o6.jpg",
+          "width": 1152,
+          "height": 2048,
+          "previewUrl": "https://pbs.twimg.com/media/HD48CbmboAIP3o6.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD5hcwKXkAAI0ei.jpg",
+        "width": 1152,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HD5hcwKXkAAI0ei.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2035121131275886749",
+    "text": "https://t.co/MqCN0kaEIQ",
+    "createdAt": "Fri Mar 20 22:27:43 +0000 2026",
+    "replyCount": 38,
+    "retweetCount": 12,
+    "likeCount": 545,
+    "conversationId": "2035121131275886749",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2034820516952121465",
+      "text": "I am now at 5 GPU providers being completely sold out for a single node of 8xH100s.\n\nI don’t think people understand the gravity of what is about to come.",
+      "createdAt": "Fri Mar 20 02:33:11 +0000 2026",
+      "replyCount": 144,
+      "retweetCount": 125,
+      "likeCount": 2313,
+      "conversationId": "2034820516952121465",
+      "author": {
+        "username": "Suhail",
+        "name": "Suhail"
+      },
+      "authorId": "793023"
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD4z4PkWsAElYGW.jpg",
+        "width": 567,
+        "height": 541,
+        "previewUrl": "https://pbs.twimg.com/media/HD4z4PkWsAElYGW.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2035055868388020540",
+    "text": "Tesla self driving approved in Netherlands on April 10th\n\nAfter that every EU country can essentially \"copy\" the approval and instantly approve it in their country too\n\nSo by end of 2026 it's likely we'll have Tesla Full Self Driving in most of the EU 🇪🇺",
+    "createdAt": "Fri Mar 20 18:08:23 +0000 2026",
+    "replyCount": 127,
+    "retweetCount": 68,
+    "likeCount": 1850,
+    "conversationId": "2035055868388020540",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2034872940542800361",
+      "text": "Together with RDW, we have officially completed the final vehicle testing phase for Full Self-Driving (Supervised) and have submitted all documentation required for the UN R-171 approval + Article 39 exemptions. The RDW team is now reviewing the documentation and test results package internally. They have communicated the expected approval for Netherlands date of 4/10, shifting from 3/20 previously and we look forward to successful completion of this cooperation. \n\nFollowing the Netherlands’ approval, European countries will be able to recognize this approval nationally. We are anticipating a possible EU-wide approval during the summer.\n\nOver the past 18 months, this approval has involved a series of intense documentation, development, testing, research & audits. Including but certainly not limited to:\n\n– 1,600,000+ km of FSD (Supervised) testing on EU roads\n– 13,000+ customer sales ride-alongs\n– 4,500+ track test scenario executions\n– Thousands of pages of written documentation for 400+ compliance requirements\n– Dozens of research studies into safety performance/results\n\nWe're extremely proud of the work conducted with the RDW team up until this point.\n\nWe very much look forward to the approval in April, and sharing FSD (Supervised) with our patient EU customers!",
+      "createdAt": "Fri Mar 20 06:01:29 +0000 2026",
+      "replyCount": 749,
+      "retweetCount": 1890,
+      "likeCount": 12008,
+      "conversationId": "2034872940542800361",
+      "author": {
+        "username": "teslaeurope",
+        "name": "Tesla Europe, Middle East & Africa"
+      },
+      "authorId": "1620480811303866369"
+    }
+  },
+  {
+    "id": "2034830611118985408",
+    "text": "SF's tech scene is finally discovering Telegram has 1 billion MAU\n\nWhich why it's finally in Claude\n\n(And of course thanks to @steipete) https://t.co/mP9H61L7O1",
+    "createdAt": "Fri Mar 20 03:13:17 +0000 2026",
+    "replyCount": 83,
+    "retweetCount": 27,
+    "likeCount": 748,
+    "conversationId": "2034830611118985408",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "1795367939123917159",
+      "text": "Telegram has 1 billion users\n\nIt's the #1 or #2 chat app in most countries around the world\n\nComplete blindspot for most Americans\n\nAnd NOBODY uses it for its encryption (or lack of it), we use it because it has the best UX of any chat app!\n\nAlso best API to develop bots with https://t.co/Up34W9Wifs",
+      "createdAt": "Tue May 28 08:14:07 +0000 2024",
+      "replyCount": 167,
+      "retweetCount": 47,
+      "likeCount": 1124,
+      "conversationId": "1795367939123917159",
+      "author": {
+        "username": "levelsio",
+        "name": "@levelsio"
+      },
+      "authorId": "1577241403",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/GOptlWDWUAAFU3l.jpg",
+          "width": 1289,
+          "height": 1953,
+          "previewUrl": "https://pbs.twimg.com/media/GOptlWDWUAAFU3l.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HD0rp1hWcAA1Ja_.jpg",
+        "width": 943,
+        "height": 2048,
+        "previewUrl": "https://pbs.twimg.com/media/HD0rp1hWcAA1Ja_.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034817543387427089",
+    "text": "Video editing with Claude Code",
+    "createdAt": "Fri Mar 20 02:21:22 +0000 2026",
+    "replyCount": 77,
+    "retweetCount": 41,
+    "likeCount": 1166,
+    "conversationId": "2034817543387427089",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2034635628902514972",
+      "text": "This video was edited entirely by Claude Code.\n\nI just gave it the files.\n\nIf 50 people comment, I'll share the exact setup. https://t.co/TAjLjmFOBj",
+      "createdAt": "Thu Mar 19 14:18:30 +0000 2026",
+      "replyCount": 244,
+      "retweetCount": 57,
+      "likeCount": 1323,
+      "conversationId": "2034635628902514972",
+      "author": {
+        "username": "Emarky",
+        "name": "Wilco de Kreij"
+      },
+      "authorId": "40646215",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2034635207928664064/img/guUmNUSWfLNsZAqr.jpg",
+          "width": 1920,
+          "height": 1080,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2034635207928664064/img/guUmNUSWfLNsZAqr.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2034635207928664064/vid/avc1/1920x1080/J76Xso9YRpwjvU6V.mp4",
+          "durationMs": 120442
+        }
+      ]
+    }
+  },
+  {
+    "id": "2034795732985663925",
+    "text": "This is why I had to stop playing Cyberpunk 2077, it's so tedious, it's not a game",
+    "createdAt": "Fri Mar 20 00:54:42 +0000 2026",
+    "replyCount": 54,
+    "retweetCount": 9,
+    "likeCount": 339,
+    "conversationId": "2034795732985663925",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2027009979639595405",
+      "text": "Zelda But It's A Modern Game (Fire Temple) 🗣️🎙️\n\"Acquiring the Boss key\" https://t.co/QVAoUsjJ5r",
+      "createdAt": "Thu Feb 26 13:16:53 +0000 2026",
+      "replyCount": 60,
+      "retweetCount": 457,
+      "likeCount": 4254,
+      "conversationId": "2027009979639595405",
+      "author": {
+        "username": "DexterJManning",
+        "name": "Dexter Manning"
+      },
+      "authorId": "600930868",
+      "media": [
+        {
+          "type": "video",
+          "url": "https://pbs.twimg.com/amplify_video_thumb/2027006625073303552/img/pLoc4uqsh-FEcOQL.jpg",
+          "width": 1920,
+          "height": 1080,
+          "previewUrl": "https://pbs.twimg.com/amplify_video_thumb/2027006625073303552/img/pLoc4uqsh-FEcOQL.jpg:small",
+          "videoUrl": "https://video.twimg.com/amplify_video/2027006625073303552/vid/avc1/1920x1080/w2xW3z6H60XeLh9r.mp4",
+          "durationMs": 50560
+        }
+      ]
+    }
+  },
+  {
+    "id": "2034698084853133419",
+    "text": "Update on my Claude Code alias I put in ~/.bashrc to code fast on VPS:\n\nc() { IS_SANDBOX=1 claude --continue --dangerously-skip-permissions \"$@\";\n\n--continue makes it continue the last session in case it logs out\n\nTo add it:\n\necho 'c() { IS_SANDBOX=1 claude --continue --dangerously-skip-permissions \"$@\"; }' >> ~/.bashrc && source ~/.bashrc\n\nThis puts it in your ~/.bashrc which runs every time you login, then just type the letter c and you're in Claude Code after logging in!",
+    "createdAt": "Thu Mar 19 18:26:40 +0000 2026",
+    "replyCount": 63,
+    "retweetCount": 26,
+    "likeCount": 416,
+    "conversationId": "2034698084853133419",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2028192195463839748",
+      "text": "My new command for Claude with remote control on yolo mode:\n\nc() { IS_SANDBOX=1 claude rc --dangerously-skip-permissions \"$@\"; } https://t.co/rhtY21pMZK",
+      "createdAt": "Sun Mar 01 19:34:36 +0000 2026",
+      "replyCount": 58,
+      "retweetCount": 30,
+      "likeCount": 579,
+      "conversationId": "2028192195463839748",
+      "author": {
+        "username": "levelsio",
+        "name": "@levelsio"
+      },
+      "authorId": "1577241403",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HCWWDG1WwAMZNP_.jpg",
+          "width": 2048,
+          "height": 1178,
+          "previewUrl": "https://pbs.twimg.com/media/HCWWDG1WwAMZNP_.jpg:small"
+        }
+      ]
+    },
+    "media": [
+      {
+        "type": "photo",
+        "url": "https://pbs.twimg.com/media/HDyywnKXoAAFmtY.jpg",
+        "width": 1230,
+        "height": 832,
+        "previewUrl": "https://pbs.twimg.com/media/HDyywnKXoAAFmtY.jpg:small"
+      }
+    ]
+  },
+  {
+    "id": "2034467344320462972",
+    "text": "Tony Fadell talking about Frikandels 😂",
+    "createdAt": "Thu Mar 19 03:09:48 +0000 2026",
+    "replyCount": 12,
+    "retweetCount": 5,
+    "likeCount": 47,
+    "conversationId": "2034467344320462972",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2034383165788196898",
+      "text": "@levelsio I was reading Tony Fadell's book, in one chapter he was describing Philips during his collaboration with them :) https://t.co/OTUICKbFeO",
+      "createdAt": "Wed Mar 18 21:35:18 +0000 2026",
+      "replyCount": 2,
+      "retweetCount": 1,
+      "likeCount": 50,
+      "conversationId": "2034371431958741176",
+      "inReplyToStatusId": "2034371431958741176",
+      "author": {
+        "username": "OfAryaVahedi",
+        "name": "Arya"
+      },
+      "authorId": "1378393087223947265",
+      "media": [
+        {
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/HDuUtH6XIAAHIRH.jpg",
+          "width": 1290,
+          "height": 924,
+          "previewUrl": "https://pbs.twimg.com/media/HDuUtH6XIAAHIRH.jpg:small"
+        }
+      ]
+    }
+  },
+  {
+    "id": "2034466219277816179",
+    "text": "Philips could have done this and become Europe's biggest company and a leader in semiconductors and GPUs now\n\nThat is if it wasn't ran by midwit MBA scavengers like Cor Boonstra (1996-2001) who only cared about short term profits\n\nHe divested ASML and TSMC because he \"didn't understand the businesses they were in\", truly a midwit of epic proportions\n\nGerard and Frederik Philips (the original founders) are turning in their graves for sure\n\nWhat a fumble",
+    "createdAt": "Thu Mar 19 03:05:19 +0000 2026",
+    "replyCount": 39,
+    "retweetCount": 18,
+    "likeCount": 343,
+    "conversationId": "2034466219277816179",
+    "author": {
+      "username": "levelsio",
+      "name": "@levelsio"
+    },
+    "authorId": "1577241403",
+    "quotedTweet": {
+      "id": "2034413293259911377",
+      "text": "@levelsio But what if those companies became so big and successful in the first place because they could do their own thing? Not sure that that would have happened under one roof at all or to this extent.",
+      "createdAt": "Wed Mar 18 23:35:01 +0000 2026",
+      "replyCount": 0,
+      "retweetCount": 0,
+      "likeCount": 15,
+      "conversationId": "2034367184307167511",
+      "inReplyToStatusId": "2034367184307167511",
+      "author": {
+        "username": "madietlx",
+        "name": "MARCELL"
+      },
+      "authorId": "1271966322830778370"
+    }
+  }
+]

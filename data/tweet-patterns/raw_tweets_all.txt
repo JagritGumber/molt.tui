@@ -1,0 +1,790 @@
+
+############################################################
+# @mattpocockuk — RAW TWEETS
+############################################################
+
+--- Tweet 1 [215 likes | 7 RT | 46 replies] 
+Working on a tool that orchestrates locally sandboxed coding agents in TypeScript
+
+- Sandboxed in Docker
+- 100% offline: commits made in the sandbox get patched back to the host
+- Build complex workflows in Typescript
+- Claude, Codex, OpenCode
+
+It's called Sandcastle
+
+--- Tweet 2 [355 likes | 18 RT | 24 replies] 📷
+Claude Code tried to improve /init...
+
+Is it any better? https://t.co/s1WmU0Mdzy
+
+--- Tweet 3 [2329 likes | 97 RT | 74 replies] 📷
+My 'grill-me' skill went viral. mattpocock/skills is up to 9K stars. Quote tweets of it are doing numbers.
+
+It's the most useful skill I've written, and I use it even outside of coding: https://t.co/hQXPan9oBT
+
+--- Tweet 4 [233 likes | 10 RT | 132 replies] 
+Folks who looked at my Claude Code cohort and didn't buy it:
+
+What stopped you?
+
+All feedback is a gift. The more brutal, the better.
+
+https://t.co/Ur0ebWlIRl
+
+--- Tweet 5 [49 likes | 0 RT | 4 replies] 
+Started planning my talk and workshop for @aiDotEngineer Europe.
+
+The timings have worked out perfectly so I have time to plan a really nice chunk of material.
+
+Looking forward to seeing you in London 🔥
+
+--- Tweet 6 [282 likes | 6 RT | 28 replies] 🔄
+.@AnthropicAI bump
+
+--- Tweet 7 [167 likes | 12 RT | 14 replies] 
+I think that the best mental models for building software with AI were figured out 20 years before ChatGPT launched.
+
+That's right, software fundamentals are more important than ever.
+
+Only 3 days and 18 hours left to get 40% off my new course:
+
+https://t.co/HKZblkdpy9
+
+--- Tweet 8 [13 likes | 0 RT | 8 replies] 
+How confident are you using the phrase 'test boundary':
+
+--- Tweet 9 [45 likes | 0 RT | 37 replies] 
+Why did you start following me on X?
+
+--- Tweet 10 [1186 likes | 60 RT | 153 replies] 
+Doing some experiments today with Opus 4.6's 1M context window.
+
+Trying to push coding sessions deep into what I would consider the 'dumb zone' of SOTA models: >100K tokens.
+
+The drop-off in quality is really noticeable. Dumber decisions, worse code, worse instruction-following.
+
+Don't treat 1M context window any differently.
+
+It's still 100K of smart, and 900K of dumb.
+
+--- Tweet 11 [1910 likes | 108 RT | 54 replies] 📷
+For weeks, folks have been asking me to make a video building a feature with Claude Code in a real codebase
+
+So here you go:
+
+- From idea to AFK agent to QA
+- Every single step explained
+- No slop allowed https://t.co/DUGpIsNxmk
+
+--- Tweet 12 [268 likes | 11 RT | 16 replies] 📷
+Having this kind of doc in your repo absolutely ROCKS for keeping you and AI on the same wavelength
+
+Cooking a /ubiquitous-language skill https://t.co/vyEUS4nwcQ
+
+--- Tweet 13 [2481 likes | 124 RT | 67 replies] 📷
+I've been an engineer for nearly a decade. Right now, process has never been more important.
+
+And skills are the best way to bundle up processes for agents.
+
+Here are the 5 I use every day:
+
+/grill-me
+/write-a-prd
+/prd-to-issues
+/tdd
+/improve-my-codebase https://t.co/pD1fKkDxYw
+
+--- Tweet 14 [518 likes | 27 RT | 56 replies] 
+Everyone thinks AI is a paradigm shift.
+
+That everything we've learned about building software in the last 20 years is for boomers.
+
+I disagree. That's why I built Claude Code for Real Engineers.
+
+It's a 2-week cohort that teaches AI Coding from first principles, all the way from requirements gathering to delegating to AFK agents.
+
+It's the best course I've ever built.
+
+It starts in 2 weeks, and for this week only it's 40% off.
+
+https://t.co/PRTVBpP2oX
+
+--- Tweet 15 [124 likes | 1 RT | 14 replies] 
+I just invoked my own /ubiquitous-language skill and loved it
+
+DDD is coming for me
+
+--- Tweet 16 [129 likes | 8 RT | 81 replies] 
+What alternatives are there to docker sandbox for sandboxing Claude Code?
+
+It's unreliable as hell on WSL.
+
+/sandbox doesn't do what I want - cc can always get around it and it doesn't allow for properly AFK workflows.
+
+--- Tweet 17 [699 likes | 21 RT | 105 replies] 
+Can I get some questions answered by someone at Anthropic?
+
+1. Can you use an OAuth token generated from a subscription to power the Claude Agent SDK strictly for using Claude Code in a local dev loop?
+
+All I want is a more reliable API for parallelizing multiple Claude Code's.
+
+2. If I build an open source tool that relies on this pattern - i.e. for making parallelization easier - can I distribute it so that other people can use it?
+
+The reason I'm asking is that the legal compliance docs and @trq212's public statements (below) appear to contradict.
+
+https://t.co/avHG1GLLM1
+
+
+############################################################
+# @theo — RAW TWEETS
+############################################################
+
+--- Tweet 1 [4296 likes | 156 RT | 194 replies] 🔄
+Google Meet is an order of magnitude better than Zoom. It’s also free. I straight up don’t get why people use Zoom.
+
+--- Tweet 2 [1050 likes | 6 RT | 107 replies] 🔄
+Over 2 weeks and no big drops. I'm scared.
+
+--- Tweet 3 [674 likes | 11 RT | 42 replies] 📷
+I'm not scared of Anthropic. https://t.co/b0Ip0hFvHS
+
+--- Tweet 4 [1154 likes | 16 RT | 76 replies] 
+Does anyone actually get a degree from Waterloo or do they all drop out to make startups?
+
+--- Tweet 5 [666 likes | 3 RT | 16 replies] 🔄
+This is why we made T3 Code open source btw. Love this!
+
+--- Tweet 6 [5982 likes | 120 RT | 214 replies] 📷
+Nobody told me about the SSD speeds on the M5 Pro wtf?? This is nearing DDR4 RAM speeds. https://t.co/hpyiUjxSrz
+
+--- Tweet 7 [1330 likes | 5 RT | 62 replies] 
+Current YC batch is very good.
+
+I am now much more broke.
+
+--- Tweet 8 [1041 likes | 16 RT | 54 replies] 🔄
+If Anthropic would open source the SDK already, this would have happened by now. Genuinely insane how they refuse to do it.
+
+Anthropic’s ego might lead to the biggest fumble of the century.
+
+--- Tweet 9 [2531 likes | 42 RT | 176 replies] 
+GPT-5.4 is an incredible model for coding.
+
+It’s a generation behind on fronted design.
+
+OpenAI is suddenly acting like this is a skill issue. Don’t let them gaslight you.
+
+--- Tweet 10 [516 likes | 15 RT | 27 replies] 📷
+Cursor's new model might not be all that new.
+
+Did my best to break down the Cursor x Kimi drama https://t.co/Db46Gr8iK7
+
+--- Tweet 11 [2073 likes | 43 RT | 65 replies] 🔄
+This should be illegal
+
+--- Tweet 12 [2588 likes | 27 RT | 180 replies] 
+T3 Code uses half as much RAM as Claude Code.
+
+Claude Code CLI: 635.5 MB
+T3 Code: 350.9 MB
+
+Yes, our Electron app is 2x more efficient than a CLI written with Bun.
+
+--- Tweet 13 [146 likes | 3 RT | 13 replies] 
+Live in 45 mins. Lots to talk about
+
+--- Tweet 14 [1236 likes | 42 RT | 101 replies] 📷
+.webp is a good format https://t.co/Wn7AWcdqJY
+
+--- Tweet 15 [354 likes | 5 RT | 32 replies] 🔄
+I might be biased but I think T3 Code is a really good option
+
+--- Tweet 16 [950 likes | 10 RT | 98 replies] 
+I hope you guys know that I tried pretty much every T3 Code alternative before building it.
+
+I wanted something good, reliable, performant and OSS.
+
+Best anything else hit was 2 out of 4. We hope to be the first to hit all four.
+
+--- Tweet 17 [996 likes | 10 RT | 52 replies] 
+Always amazed by the people who dm me in support of the anti-Anthropic stuff. Feels like half the industry is scared to poke the bear.
+
+Thankful I am in a position to fight back on the bullshit. Will do my best. Sorry in advance if we get Claude banned on T3 Chat 🙃
+
+--- Tweet 18 [873 likes | 8 RT | 106 replies] 🔄
+Still haven’t heard from any lawyers. I think we may be in the clear?
+
+--- Tweet 19 [68 likes | 0 RT | 5 replies] 
+Who’s going to the @underscoresplus x @jedwill show in SF tonight??
+
+--- Tweet 20 [1863 likes | 31 RT | 89 replies] 🔄
+Since OpenAI dropped gpt-oss-120b, Mistral has released 4 models that are worse than gpt-pss-120b
+
+
+############################################################
+# @tibo_maker — RAW TWEETS
+############################################################
+
+--- Tweet 1 [84 likes | 11 RT | 85 replies] 📷
+building a new SEO audit tool
+
+drop your site below 👇
+
+I'll reply with a single prompt
+you run it
+your SEO is fixed ✨ https://t.co/mfZ6bOsRE5
+
+--- Tweet 2 [115 likes | 7 RT | 30 replies] 📷
+in just 9 days, this TikTok account hit 3m followers
+
+posting AI fruit characters on Love Island
+
+every single episode gets 10m+ views. total: 300m views, 23m likes
+
+and here's the thing nobody's saying out loud: this is a monetization engine
+
+3m followers = brand deals, merch, digital products
+
+the creator is already building an audience that will buy whatever they sell next
+
+the best part is that anyone can replicate this exact playbook
+
+the format is simple:
+- pick a concept people already love (reality TV, drama, nostalgia, etc)
+- make AI characters do human things
+- drop episodes daily 
+- let the algorithm do the rest
+
+this is exactly what Revid is built for, by the way
+
+--- Tweet 3 [75 likes | 10 RT | 33 replies] 📷
+I turned my team into Hollywood actors using their Slack profiles
+
+Revid's new face mapping is terrifyingly good https://t.co/OEIlFWlGcR
+
+--- Tweet 4 [198 likes | 11 RT | 108 replies] 
+quantity leads to quality 
+quantity leads to quality 
+quantity leads to quality 
+quantity leads to quality 
+
+👉 build more
+
+--- Tweet 5 [166 likes | 7 RT | 99 replies] 
+you'll not be replaced by the dude using AI to save 10 min on email management
+
+you'll be replaced by the builders running 12 Claude Code Max to run 3 companies from their laptop
+
+--- Tweet 6 [34 likes | 0 RT | 46 replies] 
+how many "AI Agent" product can thrive at once?
+
+--- Tweet 7 [57 likes | 4 RT | 18 replies] 📷
+25 years in product, he says this is the best collaborator he's ever worked with
+
+built a personal OS that runs his entire workday from one command https://t.co/nNzblKIoAl
+
+--- Tweet 8 [25 likes | 0 RT | 17 replies] 📷
+I feel bad about our "failed payment" email sequence
+
+4 email over 2 weeks ... 
+
+.. but then I find out about Datadog still sending emails, 2 years after the first failed payment, for a company I am not related to anymore, which doesn't even use the product anymore 🤷‍♂️ https://t.co/QgwFrViuo7
+
+--- Tweet 9 [230 likes | 11 RT | 80 replies] 📷
+burnout hit a 6-year high in the US
+
+at the same time, the global wellness industry is forecast to reach $9 trillion by 2028
+
+health is the #1 industry in the US
+it's bigger than the entire GDP of Germany 🤯
+
+mental wellness is its fastest growing segment, sleep tech is on track to 5x in the next decade, mental health apps will nearly double by 2030
+
+the math is almost too clean - more suffering, more market
+
+a lot of people are getting very rich solving something that is getting worse every year
+
+I don't know what to do with that - I just think it's worth sitting with
+
+--- Tweet 10 [74 likes | 3 RT | 19 replies] 🔄
+once again, build more things 
+
+failures are not failures if you learn something that will eventually make you successful
+
+--- Tweet 11 [144 likes | 11 RT | 55 replies] 
+remember that VCs are getting rich by being wrong 90% of the time
+
+you need to try more
+
+--- Tweet 12 [267 likes | 28 RT | 51 replies] 📷
+I processed all 129 starter story interviews to find what founders actually agree on
+
+the result:
+
+👉 19 patterns lead to success
+
+still wip, but curious what you think - https://t.co/NVw4ZhkfdR
+
+feel free to roast it (without hurting me 😅) and tell me what's missing https://t.co/kjiTaJe51s
+
+--- Tweet 13 [423 likes | 19 RT | 154 replies] 
+unpopular take: 
+
+the "SaaSpocalypse" is the best thing to happen to bootstrapped founders
+
+everyone panicking about AI killing SaaS is missing the point
+
+most companies getting destroyed are bloated enterprises with 1,000+ employees trying to extract as much $$ as they can from their customers 
+
+meanwhile solo founders are shipping AI-native products from their couch and hitting $10k MRR in weeks
+
+SaaS isn't dying
+bad SaaS is dying
+
+AI-native SaaS is thriving 🙌
+
+--- Tweet 14 [57 likes | 4 RT | 21 replies] 📷
+most people still think AI video = weird glitchy clips
+
+meanwhile you can now generate a full cinematic story with consistent characters from a single prompt
+
+made this in Revid with few editing
+
+you can now run YT/TikTok channels with very low effort and incredible quality https://t.co/yU2ZekW2eo
+
+--- Tweet 15 [19 likes | 0 RT | 6 replies] 📷🔄
+absolutely love this too 🤣
+worth watching it https://t.co/qMFXswyPUy
+
+--- Tweet 16 [133 likes | 4 RT | 37 replies] 📷
+the director of content marketing at Ahrefs said Outrank is awesome for SEO 
+
+I mean, in a way 😅
+
+his take: AI content has crossed a threshold. it's no longer a trade-off between speed and quality. it's now indistinguishable from what experienced human content marketers produce
+
+this is exactly what we've been building toward with Outrank
+
+we've seen it in our own data - our users say they are ranking for keywords they couldn't touch before, without even hiring writers or agencies
+
+their content is converting and the traffic is compounding every week
+
+what gets me excited is that we're still early - the updates we have coming for Outrank go deeper into this direction
+
+and I think the gap between AI-assisted SEO & traditional content marketing is only going to widen from here
+
+when the director of content at one of the most respected SEO companies in the world says this publicly, it just confirms what we've been seeing quietly in our own numbers
+
+bullish doesn't even cover it 🚀
+
+--- Tweet 17 [325 likes | 9 RT | 78 replies] 📷
+I was failing in life until ...
+
+👀 https://t.co/8m67jXDPCE
+
+--- Tweet 18 [278 likes | 9 RT | 474 replies] 
+building an AI product?
+
+drop your link + one sentence pitch below
+
+let's see what you're working on 👇
+
+--- Tweet 19 [202 likes | 13 RT | 65 replies] 
+go to these tools to build and launch your SaaS faster:
+
+• Cursor
+• Supabase
+• Vercel
+• Resend
+• Stripe
+• Notion
+• Feather
+• Figma
+• Revid
+• SuperX
+• PostHog
+• Gemini
+• Fal
+• Crisp
+• Slack
+• Screen Studio
+• ProfitWell
+
+bookmark this. come back when you're building.
+
+
+############################################################
+# @levelsio — RAW TWEETS
+############################################################
+
+--- Tweet 1 [513 likes | 19 RT | 46 replies] 📷🔄
+Another one https://t.co/mVOiTU6yIp
+
+--- Tweet 2 [934 likes | 16 RT | 60 replies] 🔄
+So many stories like this in Bali
+
+You book a beautiful luxury couple massage 
+
+Beautiful temple with a jungle garden and nice staff welcoming you with a welcome drink
+
+Then you lie down and 15 minutes into the massage the trash burning starts, the entire room gets cooked and fills with smoggy air
+
+You and your clothes all smell after
+
+Staff says "normaaallll in Baliiii"
+
+It's really a paradise lost
+
+--- Tweet 3 [57 likes | 1 RT | 15 replies] 🔄
+No but typical reply to any longevity posts, I think it's usually a cope
+
+"Ha ha! He'll die young of stress from being obsessed with his health! Not like me *opens a can of beer*"
+
+My stress is low and my biomarkers are great. I don't care so much about tracking but @WHOOP is nice
+
+It mostly makes going to gym a bit more gamified like an achievement which is nice
+
+I'm in group with my friends on WHOOP and you can kinda compete on your Strain and Sleep score and it's fun and keeps you accountable
+
+--- Tweet 4 [321 likes | 14 RT | 48 replies] 📷🔄
+✈️ Another fatal crash in the US allegedly caused by ATC
+
+An 🇨🇦 Air Canada plane crashed into a fire truck at New York's LaGuardia Airport (LGA), two pilots died, but luckily most people survived
+
+Just a week ago at Newark Liberty Airport, another one of New York City's main airports, two aircraft almost collided: an Alaska Airlines flight was told to immediately do a go-around (abort landing) after almost crashing into a FedEx plane that was landing at an intersecting runway
+
+And just a year ago in Washington D.C., an American Airlines plane crashed into a Black Hawk helicopter killing all 64 people on board the plane and all 3 soldiers in the helicopter. The National Transportation Safety Board (NTSB) concluded that the ATC was hindered by "unsustainable traffic load" and only one ATC controller was managing both helicopter and plane traffic at the same time (among other systemic failures)
+
+Air Canada, Alaska Airlines and American Airlines are some of the safest airlines in the world, and in general US airline are one of the safest in the world. American pilots are rigorous with safety and there's lots of stories with American pilots "rejecting the plane" and won't take off if they're not fully sure it's 100% safe to fly, as it should be
+
+But the problem in the US now isn't the pilots, increasingly it's the air traffic control (ATC) being understaffed, overworked and some say possibly a quality problem of hiring the wrong people and/or not training them properly
+
+That's very scary because even if you have a great plane, with great pilots, who do their best to fly safely, they're highly dependent on ATC to do their job to not crash into other planes
+
+And if nobody can rely on ATC anymore, well, more people will certainly die in the future
+
+--- Tweet 5 [368 likes | 14 RT | 38 replies] 📷🔄
+It's close to impossible to find a place in Bali where there isn't twice daily plastic trash burning near your Airbnb or rental at 7am and 6pm 
+
+Facebook groups are full of it https://t.co/nVZozoRqsd
+
+--- Tweet 6 [250 likes | 4 RT | 23 replies] 🔄
+It's hard to be honest about places
+
+It's my job with https://t.co/4CIlXlINCh but if I am honest about a place I instantly get attacked on here by mobs of people from those countries
+
+Need a thick skin
+
+--- Tweet 7 [654 likes | 13 RT | 57 replies] 🔄
+Cyprus is finally having a moment 🇨🇾
+
+--- Tweet 8 [1626 likes | 42 RT | 149 replies] 🔄
+Adsense is incredibly low amounts of money
+
+Photo AI would make $150/month with 156,000 visitors ($1 CPM)
+
+Now it makes $110,000/month with subscriptions instead so about 700x more
+
+--- Tweet 9 [261 likes | 12 RT | 48 replies] 📷
+Brazil has funny place names https://t.co/ykKoT0ZrXO
+
+--- Tweet 10 [7350 likes | 244 RT | 97 replies] 🔄
+So Daniel Radcliffe aka Harry Potter instead of spending his money, actually invested his money
+
+And now he makes $660,000/mo just from investment returns (probably ETFs)
+
+Essentially a perfect FIRE (financial independence retire early) story
+
+Great work 10/10 👏
+
+--- Tweet 11 [289 likes | 11 RT | 36 replies] 📷
+Me on 5-MeO DMT https://t.co/rDn9EIXQav
+
+--- Tweet 12 [5748 likes | 176 RT | 121 replies] 📷🔄
+Me when my accountant tells me I have to show up at the local startup event to prove my new tax residence https://t.co/I1u0urxruT
+
+--- Tweet 13 [545 likes | 12 RT | 38 replies] 📷🔄
+https://t.co/MqCN0kaEIQ
+
+--- Tweet 14 [1850 likes | 68 RT | 127 replies] 🔄
+Tesla self driving approved in Netherlands on April 10th
+
+After that every EU country can essentially "copy" the approval and instantly approve it in their country too
+
+So by end of 2026 it's likely we'll have Tesla Full Self Driving in most of the EU 🇪🇺
+
+--- Tweet 15 [748 likes | 27 RT | 83 replies] 📷🔄
+SF's tech scene is finally discovering Telegram has 1 billion MAU
+
+Which why it's finally in Claude
+
+(And of course thanks to @steipete) https://t.co/mP9H61L7O1
+
+--- Tweet 16 [1166 likes | 41 RT | 77 replies] 🔄
+Video editing with Claude Code
+
+--- Tweet 17 [339 likes | 9 RT | 54 replies] 🔄
+This is why I had to stop playing Cyberpunk 2077, it's so tedious, it's not a game
+
+--- Tweet 18 [416 likes | 26 RT | 63 replies] 📷🔄
+Update on my Claude Code alias I put in ~/.bashrc to code fast on VPS:
+
+c() { IS_SANDBOX=1 claude --continue --dangerously-skip-permissions "$@";
+
+--continue makes it continue the last session in case it logs out
+
+To add it:
+
+echo 'c() { IS_SANDBOX=1 claude --continue --dangerously-skip-permissions "$@"; }' >> ~/.bashrc && source ~/.bashrc
+
+This puts it in your ~/.bashrc which runs every time you login, then just type the letter c and you're in Claude Code after logging in!
+
+--- Tweet 19 [47 likes | 5 RT | 12 replies] 🔄
+Tony Fadell talking about Frikandels 😂
+
+--- Tweet 20 [343 likes | 18 RT | 39 replies] 🔄
+Philips could have done this and become Europe's biggest company and a leader in semiconductors and GPUs now
+
+That is if it wasn't ran by midwit MBA scavengers like Cor Boonstra (1996-2001) who only cared about short term profits
+
+He divested ASML and TSMC because he "didn't understand the businesses they were in", truly a midwit of epic proportions
+
+Gerard and Frederik Philips (the original founders) are turning in their graves for sure
+
+What a fumble
+
+
+############################################################
+# @swyx — RAW TWEETS
+############################################################
+
+--- Tweet 1 [159 likes | 5 RT | 14 replies] 🔄
+i challenge you to find a single kernelwriting infra company this cracked and this confident that they can do this all entirely open catch up and its both immediately useful and ~nobody can catch up (if someone does, they still win because Mojo)
+
+--- Tweet 2 [14 likes | 0 RT | 13 replies] 📷🔄
+in AINews I posted my take on the Dreamer x Meta execuhire today and what it means for the 9 month anniversary of Zuck's "Personal Superintelligence" manifesto: 
+
+- Vibes
+- Manus
+- Dreamer
+
+What will MSL Apps have to show by year end? Who else will they acquire? I'm taking predictions.
+
+--- Tweet 3 [104 likes | 2 RT | 18 replies] 📷🔄
+the pattern is clear:
+
+come on @latentspacepod /@aiDotEngineer , get billions thrown at you by @alexandr_wang and @natfriedman 
+
+(congrats) https://t.co/h15jEG8zUS
+
+--- Tweet 4 [75 likes | 1 RT | 11 replies] 🔄
+fun fact: Alap is so good at pitching he got me to quit finance. When he presented @Sentieo while i was still working in my hedge fund, I walked him out to the elevators and asked him for a job. 
+
+Sentieo was my first startup job, and my 3rd attempt at applying "ai" to finance applications. We even got a Patent! (i left before i could get my name on it)
+
+Now that @dsiroker has wound down Rewind, LittleBird is the presumptive successor. Context is still king, and Alap and much of the old Sentieo team are getting back together to solve it.
+
+--- Tweet 5 [28 likes | 0 RT | 8 replies] 📷🔄
+this @latentspacepod is getting lots of love https://t.co/Sput3EU7Uc
+
+--- Tweet 6 [118 likes | 11 RT | 30 replies] 📷🔄
+Reupping the @devinai explainer now that everyone is suddenly loving kloud koding because @ryancarson said so
+
+(btw devin usage has grown &gt;50% MoM every month this year, it has shocked even scott) https://t.co/7hGCELdLhW
+
+--- Tweet 7 [75 likes | 1 RT | 32 replies] 📷🔄
+this talk was 2.5 years ago
+
+i might never top my 2023 record in terms of prediction value per item of what i wrote/spoke about. insane run. https://t.co/ztUg0MsSgf
+
+--- Tweet 8 [39 likes | 0 RT | 16 replies] 📷🔄
+lol
+
+lmao, even https://t.co/SonUroNO09
+
+--- Tweet 9 [85 likes | 5 RT | 31 replies] 📷
+to: every single dev that works with a designer
+
+msg: Give your designer access to your coding agent. It is imperative that you do so. You'll see the most productivity and beauty in your work in a month. And then you'll realize just how much -you- were holding them back this entire time.
+
+--- Tweet 10 [207 likes | 13 RT | 41 replies] 🔄
+btw emerging consensus is that identity-based authz for ai is the most important solution for security, esp if you want to break the binary decision between HITL-everything and —dangerously-skip-permissions
+
+keycard is the leading voice in this and now supports all koding agents
+
+--- Tweet 11 [21 likes | 0 RT | 11 replies] 📷🔄
+trust @reckless to put the seo slop at the end haahahahhahaa hero
+
+and yes at work we have one of those fancy wifi printers with screens and doodads and it has worked exactly 1 time out of the ~10 times ive tried to print something. https://t.co/meFYPebfUo
+
+--- Tweet 12 [15 likes | 2 RT | 6 replies] 📷🔄
+im getting absolutely mogged by @tmtlongshort fml https://t.co/Ryg5HIR6FR
+
+--- Tweet 13 [294 likes | 12 RT | 37 replies] 📷
+working on something big and need a design engineer!!
+
+i assume @emilkowalski is taken, but if you align with this sort of philosophy here please reach out. https://t.co/RnIt8VDvr8
+
+--- Tweet 14 [61 likes | 3 RT | 19 replies] 📷
+caption this https://t.co/KlljBtCeFE
+
+--- Tweet 15 [65 likes | 2 RT | 12 replies] 📷🔄
+just realized the nice thing about having @GoogleDeepMind as presenting sponsor is i can literally do every damn thing i want to do in AI with one api key https://t.co/lxSPgbRNhj
+
+--- Tweet 16 [78 likes | 0 RT | 16 replies] 🔄
+btw the @cognition growth formula is very simple:
+
+Devin growth = cloud komputer * koding agents growth
+
+math it out. working on releasing some numbers soon
+
+--- Tweet 17 [381 likes | 8 RT | 32 replies] 📷
+i am actually still not over how Qwen as we knew it, one of the S tier Tigers, is over. https://t.co/Vj617GBDwv
+
+--- Tweet 18 [984 likes | 50 RT | 82 replies] 🔄
+btw every single compute infra provider’s chart, including render competitors, is looking like this. something broke in Dec 2025 and everything is becoming computer.
+
+forget GPU shortage, forget Memory shortage, the @fabknowledge pod on LS was right, there is going to be a CPU shortage
+
+--- Tweet 19 [24 likes | 1 RT | 11 replies] 🔄
+*minimal representation of the MODAL human cultural artifact is a prompt…
+
+…severely raising the cost of any diversity and encouraging extreme monoculture to appease the machine god.
+
+you do not want to see what happens when humanity unthinkingly submits to loss minimization, it will not be pretty. intelligence and individuality is a “use it or lose it” proposition right now.
+
+--- Tweet 20 [216 likes | 17 RT | 31 replies] 📷🔄
+been saying this for 3 :) https://t.co/VhUfwkqD4F
+
+
+############################################################
+# @rauchg — RAW TWEETS
+############################################################
+
+--- Tweet 1 [385 likes | 24 RT | 31 replies] 📷
+Sunday @v0: a web-based 3D Jenga game.
+
+Everything is procedurally generated: the structure, the bricks, the wooden texture, the sounds, the carved-in ▲ on the top pieces.
+
+I tweaked the physics enough that it feels as fun and frustrating as the real thing 😂
+
+Cool technical detail: v0 loaded a R3F (react-three-fiber) Skill automatically when I first asked for a 3d game. Anecdotally it seems that it totally nailed how to work with 3D!
+
+--- Tweet 2 [2547 likes | 243 RT | 286 replies] 
+Code is an output. Nature is healing.
+
+For too long we treated code as input. We glorified it, hand-formatted it, prettified it, obsessed over it.
+
+We built sophisticated GUIs to write it in: IDEs. We syntax-highlit, tree-sat, mini-mapped the code. Keyboard triggers, inline autocompletes, ghost text. “What color scheme is that?”
+
+We stayed up debating the ideal length of APIs and function bodies. Is this API going to look nice enough for another human to read?
+
+We’re now turning our attention to the true inputs. Requirements, specs, feedback, design inspiration. Crucially: production inputs. Our coding agents need to understand how your users are experiencing your application, what errors they’re running into, and turn *that* into code.
+
+We will inevitably glorify code less, as well as coders. The best engineers I’ve worked with always saw code as a means to an end anyway. An output that’s bound to soon be transformed again.
+
+--- Tweet 3 [560 likes | 53 RT | 48 replies] 📷
+Understand the universe https://t.co/s5sKMU1nRJ
+
+--- Tweet 4 [978 likes | 66 RT | 61 replies] 🔄
+Next.js 16.2 is an agent-native framework.
+
+𝙰𝙶𝙴𝙽𝚃𝚂.𝚖𝚍 + bundled docs make your agent an expert in the exact version of Next.js you’re using.
+
+@𝚟𝚎𝚛𝚌𝚎𝚕/𝚗𝚎𝚡𝚝-𝚋𝚛𝚘𝚠𝚜𝚎𝚛 gets your agent a purpose-built tool to debug & optimize your frontend.
+
+We proved these in production at Vercel. Agents shipped optimizations that expert frontend engineers missed or struggled to write manually. 
+
+The thing I’m most excited about is that agents will be able to harness the full power of the newer advanced React and Next.js capabilities that were conceived for humans to have the best possible end-user experience.
+
+--- Tweet 5 [670 likes | 14 RT | 47 replies] 🔄
+Next.js 16.2 “Snow Leopard” 🐆 
+
+i.e.: sheer focus on performance, agentic developer experience, robustness
+
+--- Tweet 6 [756 likes | 20 RT | 34 replies] 🔄
+It’s an honor to welcome Mitchell Hashimoto to the @vercel board.
+
+Mitchell built both an incredible company and foundational infrastructure, always putting open source and developers first. 
+
+As the world is rebuilt with AI, I can’t think of a better person than an exceptional thinker like Mitchell to help us define the Agentic Infrastructure of the future.
+
+I can tell you the hype is real btw. Just having worked closely with him only for a few weeks, I see the magic. 
+
+And, it also doesn’t hurt to have a *checks notes* direct line to ask for Ghostty features like session restoration and vertical tabs 😆
+
+--- Tweet 7 [715 likes | 44 RT | 58 replies] 🔄
+1️⃣ Install the Vercel plugin for your favorite coding agent 
+
+2️⃣ There’s no step two. You just gave Claude Code &amp; Cursor production deployment superpowers
+
+Running 𝚗𝚙𝚡 𝚙𝚕𝚞𝚐𝚒𝚗𝚜 𝚊𝚍𝚍 gets you every Skill and keeps them updated. So slick
+
+--- Tweet 8 [901 likes | 61 RT | 131 replies] 
+Every month I periodically see the recycled take that “something better than chat” is coming for AI. That chat is temporary.
+
+In fact, I predict the opposite. More of our work and life will happen through chat and voice interfaces of increasingly intelligent agents. 🦞 OpenClaw is the lobster in the coal mine of this.
+
+It’s true that as humans we consume with all the senses. When we use our internal company agent at @vercel, it can answer any question in English, but also plot data and richly visualize it. All in the chat medium. You start with any question, and receive periodic reports, much like an enterprise claw, on @slackhq. If the chat is not enough, you’re one click away from more depth and refinement on a web page.
+
+I don’t believe web pages are going anywhere. Many will evolve to accept natural language, which is the lingua franca of AI, and stream both text and complex data. We call this Generative UI (eg: https://t.co/j52qMrIOts).
+
+And web pages will also be crucial in enriching the conversations that happen elsewhere, whether you’re chatting with your agent on WhatsApp or Slack. We’re building https://t.co/zwHPbMHK45 to make this universal interface as easy to deploy as possible.
+
+--- Tweet 9 [3878 likes | 384 RT | 97 replies] 📷
+1 hour of TravisCore to build and accelerate to https://t.co/4MENilU1Tm
+
+--- Tweet 10 [6770 likes | 777 RT | 389 replies] 
+Entrepreneurship is more about stamina than it is about genius
+
+--- Tweet 11 [1194 likes | 60 RT | 83 replies] 🔄
+AI will help us rewrite lots of foundational infrastructure in Rust. We will live in a safety, speed, memory efficiency, predictability, and cold start performance panacea
+
+--- Tweet 12 [8496 likes | 1101 RT | 373 replies] 
+Obsession is the mother of invention
+
+--- Tweet 13 [139 likes | 11 RT | 15 replies] 
+Next week stop by Vercel HQ in SF for Builder Day. I’ll be interviewing the founder of one of the hottest AI apps: @stephenhaney of @paper
+https://t.co/J1mxA8Q2Fc
+
+--- Tweet 14 [173 likes | 8 RT | 11 replies] 📷
+New https://t.co/0QVDsXyexx live on ▲. TBPN is one of the coolest things in tech! https://t.co/KRS02wHOgp
+
+--- Tweet 15 [423 likes | 22 RT | 31 replies] 🔄
+Vercel now powers the Notion agent platform.
+
+Not only are they a great company and product I use daily, I think they're going to be one of the big winners of the agent era.
+
+The main 'runtime' of an agent is English (natural language) documents and specs. The other ingredient is access to data and integrations. Notion is at the center of both.
+
+--- Tweet 16 [103 likes | 2 RT | 10 replies] 🔄
+Agent-native Flags. Just a CLI + Skill ☺️
+
+--- Tweet 17 [1247 likes | 50 RT | 41 replies] 🔄
+1️⃣ 𝚗𝚙𝚖 𝚒 𝚌𝚑𝚊𝚝
+2️⃣ 𝚌𝚛𝚎𝚊𝚝𝚎𝚆𝚑𝚊𝚝𝚜𝙰𝚙𝚙𝙰𝚍𝚊𝚙𝚝𝚎𝚛()
+3️⃣ There's no step 3
+
+Easiest way to start building WhatsApp agents
+
+--- Tweet 18 [880 likes | 52 RT | 24 replies] 
+Anti-fragile Infrastructure
+
+--- Tweet 19 [365 likes | 10 RT | 32 replies] 
+Pure agent-driven layout shift fixing & skeleton generation has been achieved internally.
+
+ELI5: Great products load instantly and smoothly. Stuff doesn't jitter around the screen. Waiting states resemble final states. Like a beautiful progressive painting 👨‍🎨
+
+We internally replicated this "craftsmanship" with AI. I'm very very chuffed. Soon in your hands.
+
+--- Tweet 20 [872 likes | 56 RT | 87 replies] 
+The effectiveness of your AI usage will be a function of the breadth and precision of your vocabulary.
+
+We deem a person a “clear thinker” when the words they communicate with *enhance* your model of the world.
+
+If you’re asking AI to draft an email or vibe-code an app, a simple prompt will get you em dashes or purple gradients. Clear thinking and expression will get you much further.
+
+Like the difference between small talk about the weather, versus someone offering you a novel idea or even an insightful new lens of the world around you.
+
+While your vocabulary and understanding develop, there are some shortcuts. Skills (as in https://t.co/egfC60tXum) magically augment your prompt and offer variety. You might not have the precise vocabulary I use when I give feedback to our product designers or when I @v0, but I’ll be able to share back my skills with you.
