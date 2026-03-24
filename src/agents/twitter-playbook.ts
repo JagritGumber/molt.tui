@@ -73,8 +73,8 @@ const DEFAULT_PLAYBOOK: Playbook = {
     },
     {
       name: "numbers-hook",
-      template: "[Big specific number]\n\n[Context that makes it meaningful]\n\n[Your take]",
-      example: "$1,000,000,000,000\n\nThat's not the only value this article has\n\nthere is a whole dimension of knowledge here",
+      template: "[Specific number from YOUR real experience]\n\n[Why it matters]",
+      example: "10x less memory usage on a single postgres extension\n\nno fancy infra. just understanding how the internals work.",
       avgEngagement: 8,
       bestFor: ["data", "business", "scale"],
     },
@@ -86,10 +86,10 @@ const DEFAULT_PLAYBOOK: Playbook = {
       bestFor: ["tools", "developer-life", "building"],
     },
     {
-      name: "quote-react",
-      template: "[Strong 1-line reaction to someone else's take]",
-      example: "We're so back!!! 😭",
-      avgEngagement: 6,
+      name: "hot-take-react",
+      template: "[Your OWN strong opinion triggered by a trending topic — never copy/quote the source]",
+      example: "every \"AI agent framework\" is just a for loop with a prompt. the actual hard part is knowing when to stop.",
+      avgEngagement: 7,
       bestFor: ["reactions", "community", "trending"],
     },
   ],
@@ -147,27 +147,61 @@ export function savePlaybook(playbook: Playbook) {
   writeFileSync(PLAYBOOK_FILE, JSON.stringify(playbook, null, 2));
 }
 
-// Pick a random pattern weighted by engagement score
-export function pickPattern(playbook: Playbook, topics?: string[]): TweetPattern {
-  let candidates = playbook.patterns;
-  if (topics?.length) {
-    const topicMatches = candidates.filter(p =>
-      p.bestFor.some(b => topics.some(t => b.includes(t.toLowerCase())))
-    );
-    if (topicMatches.length > 0) candidates = topicMatches;
-  }
-  // Weighted random by engagement score
-  const totalWeight = candidates.reduce((s, p) => s + p.avgEngagement, 0);
+// Simple weighted random fallback (no LLM)
+export function pickPatternRandom(playbook: Playbook): TweetPattern {
+  const totalWeight = playbook.patterns.reduce((s, p) => s + p.avgEngagement, 0);
   let r = Math.random() * totalWeight;
-  for (const p of candidates) {
+  for (const p of playbook.patterns) {
     r -= p.avgEngagement;
     if (r <= 0) return p;
   }
-  return candidates[candidates.length - 1]!;
+  return playbook.patterns[playbook.patterns.length - 1]!;
+}
+
+// Build a prompt for the LLM to analyze topics and pick the best pattern
+export function buildPatternPickerPrompt(playbook: Playbook, trendingContent: string): string {
+  const patternList = playbook.patterns.map(p =>
+    `- ${p.name}: "${p.template}" (best for: ${p.bestFor.join(", ")})`
+  ).join("\n");
+
+  return `You are a content strategist. Analyze the trending topics below and pick the BEST tweet pattern for the user.
+
+AVAILABLE PATTERNS:
+${patternList}
+
+TRENDING CONTENT:
+${trendingContent}
+
+TASK:
+1. Which topic has the most VALUE for a developer audience? (not just engagement — actual insight depth)
+2. Which pattern best fits that topic? (e.g. a deep insight needs "discovery", a strong opinion needs "contrarian", a project update needs "build-in-public")
+3. What angle should the tweet take?
+
+Respond in EXACTLY this format (3 lines, nothing else):
+PATTERN: [pattern name]
+TOPIC: [the topic to tweet about, in 5-10 words]
+ANGLE: [the specific angle/take in one sentence]`;
 }
 
 // Build the system prompt for tweet generation using the playbook
-export function buildTweetPrompt(playbook: Playbook, userStyle: string): string {
+// Strip AI-generated signatures that detection tools (Pangram, GPTZero) flag
+export function sanitizeTweet(text: string): string {
+  return text
+    .replace(/—/g, "-")           // em dash → regular dash
+    .replace(/–/g, "-")           // en dash → regular dash
+    .replace(/"/g, '"')           // smart quotes → straight
+    .replace(/"/g, '"')
+    .replace(/'/g, "'")
+    .replace(/'/g, "'")
+    .replace(/…/g, "...")         // ellipsis char → three dots
+    .replace(/\|/g, "")           // pipe chars (AI signature)
+    .replace(/^\s*["']+|["']+\s*$/g, "") // strip wrapping quotes
+    .replace(/\n{3,}/g, "\n\n")  // collapse triple+ newlines
+    .trim()
+    .slice(0, 280);
+}
+
+export function buildTweetPrompt(playbook: Playbook, userStyle: string, learnings?: string): string {
   const rules = playbook.rules.map(r => `- ${r}`).join("\n");
   const avoid = playbook.avoid.map(a => `- ${a}`).join("\n");
   const styleExamples = playbook.styles
@@ -189,6 +223,16 @@ ${rules}
 AVOID:
 ${avoid}
 
-Write the tweet ONLY. No quotes, no meta-commentary. Max 280 chars.
-Sound like a real person sharing genuine thoughts, not a content machine.`;
+CRITICAL — AI DETECTION AVOIDANCE:
+- NEVER use em dash (—), use regular dash (-) or nothing
+- NEVER use "Here's why:", "Here's the thing:", "Let me explain"
+- NEVER use "In today's world", "It's worth noting", "At the end of the day"
+- NEVER use semicolons in tweets
+- NEVER start with "I think" or "I believe"
+- Use contractions (don't, can't, won't) not formal forms
+- Use sentence fragments, not complete sentences
+- Typos and informal grammar are OK — makes it human
+- Write like texting, not like writing an essay
+
+Write the tweet ONLY. No quotes, no meta-commentary. Max 280 chars.${learnings || ""}`;
 }
