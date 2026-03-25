@@ -263,22 +263,29 @@ async def main():
     browser_args = []
     browser_path = None
 
-    # Standalone Chromium for WSL (non-snap, undetectable via zendriver)
-    chrome_paths = [
-        os.path.expanduser("~/.local/chromium/chrome-linux/chrome"),
-        "/usr/bin/chromium-browser",
-        "/usr/bin/chromium",
+    # Browser priority: Opera (has VPN) > standalone Chromium > system Chromium
+    browser_options = [
+        ("/usr/bin/opera", "Opera"),
+        (os.path.expanduser("~/.local/chromium/chrome-linux/chrome"), "Chromium (standalone)"),
+        ("/usr/bin/chromium-browser", "Chromium (system)"),
     ]
-    for p in chrome_paths:
-        if os.path.exists(p):
-            browser_path = p
+    browser_name = "unknown"
+    for path, name in browser_options:
+        if os.path.exists(path):
+            browser_path = path
+            browser_name = name
             break
 
     if not browser_path:
-        print("ERROR: No Chromium found. Run: curl + unzip to ~/.local/chromium/")
+        print("ERROR: No browser found. Install Opera (sudo apt install opera-stable) or Chromium.")
         sys.exit(1)
 
-    print(f"  Browser path: {browser_path}")
+    # Persistent user data — cookies, login sessions, VPN settings survive restarts
+    user_data_dir = os.path.expanduser("~/.moltui/opera-profile")
+    os.makedirs(user_data_dir, exist_ok=True)
+
+    print(f"  Browser: {browser_name} ({browser_path})")
+    print(f"  Profile: {user_data_dir}")
     print(f"  Headless: {headless}")
     print()
 
@@ -286,7 +293,12 @@ async def main():
         browser_executable_path=browser_path,
         headless=headless,
         no_sandbox=True,
-        browser_args=["--disable-gpu", "--disable-dev-shm-usage"],
+        user_data_dir=user_data_dir,
+        browser_args=[
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+        ],
     )
 
     print("Browser launched. Navigating to X.com...")
@@ -318,8 +330,47 @@ async def main():
         print("\nShutting down...")
         log_action("agent", "stopped by user")
     finally:
-        browser.stop()
+        await browser.stop()
+
+
+async def setup_mode():
+    """Launch browser for manual login and VPN setup. Session persists."""
+    user_data_dir = os.path.expanduser("~/.moltui/opera-profile")
+    os.makedirs(user_data_dir, exist_ok=True)
+
+    browser_path = "/usr/bin/opera"
+    if not os.path.exists(browser_path):
+        browser_path = os.path.expanduser("~/.local/chromium/chrome-linux/chrome")
+
+    print("Setup mode — log in and configure VPN")
+    print(f"  Profile saved to: {user_data_dir}")
+    print("  Press Ctrl+C when done.\n")
+
+    browser = await zd.start(
+        browser_executable_path=browser_path,
+        headless=False,
+        no_sandbox=True,
+        user_data_dir=user_data_dir,
+        browser_args=[
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+        ],
+    )
+
+    page = await browser.get("https://x.com/login")
+    print("Browser open — log in, enable VPN, set location to Americas.")
+
+    try:
+        while True:
+            await asyncio.sleep(5)
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        print("\nSession saved. Run without --setup to start the agent.")
+        await browser.stop()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    if "--setup" in sys.argv:
+        asyncio.run(setup_mode())
+    else:
+        asyncio.run(main())
