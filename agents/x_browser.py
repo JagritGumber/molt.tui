@@ -280,12 +280,9 @@ async def main():
         print("ERROR: No browser found. Install Opera (sudo apt install opera-stable) or Chromium.")
         sys.exit(1)
 
-    # Persistent user data — cookies, login sessions, VPN settings survive restarts
-    user_data_dir = os.path.expanduser("~/.moltui/opera-profile")
-    os.makedirs(user_data_dir, exist_ok=True)
-
+    # Opera uses its default profile at ~/.config/opera/ — cookies/VPN persist across sessions
     print(f"  Browser: {browser_name} ({browser_path})")
-    print(f"  Profile: {user_data_dir}")
+    print(f"  Profile: ~/.config/opera/ (Opera default)")
     print(f"  Headless: {headless}")
     print()
 
@@ -293,7 +290,6 @@ async def main():
         browser_executable_path=browser_path,
         headless=headless,
         no_sandbox=True,
-        user_data_dir=user_data_dir,
         browser_args=[
             "--disable-gpu",
             "--disable-dev-shm-usage",
@@ -334,23 +330,19 @@ async def main():
 
 
 async def setup_mode():
-    """Launch browser for manual login and VPN setup. Session persists."""
-    user_data_dir = os.path.expanduser("~/.moltui/opera-profile")
-    os.makedirs(user_data_dir, exist_ok=True)
-
+    """Launch browser for manual login and VPN setup. Session persists in Opera's default profile."""
     browser_path = "/usr/bin/opera"
     if not os.path.exists(browser_path):
         browser_path = os.path.expanduser("~/.local/chromium/chrome-linux/chrome")
 
     print("Setup mode — log in and configure VPN")
-    print(f"  Profile saved to: {user_data_dir}")
+    print(f"  Session saved to Opera's default profile (~/.config/opera/)")
     print("  Press Ctrl+C when done.\n")
 
     browser = await zd.start(
         browser_executable_path=browser_path,
         headless=False,
         no_sandbox=True,
-        user_data_dir=user_data_dir,
         browser_args=[
             "--disable-gpu",
             "--disable-dev-shm-usage",
