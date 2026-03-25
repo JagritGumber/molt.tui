@@ -868,12 +868,26 @@ Write ONE tweet. Sound like Jagrit typed it. No quotes.` },
   }
 }
 
+function queueDraftForBrowser(text: string) {
+  const queueFile = join(getConfigDir(), "tweet-drafts.json");
+  let drafts: Array<{ text: string; createdAt: number }> = [];
+  if (existsSync(queueFile)) {
+    try { drafts = JSON.parse(readFileSync(queueFile, "utf-8")); } catch { /* reset */ }
+  }
+  drafts.push({ text, createdAt: Date.now() });
+  if (drafts.length > 20) drafts = drafts.slice(-20);
+  writeFileSync(queueFile, JSON.stringify(drafts, null, 2));
+}
+
 async function postTweet(text: string) {
+  // Always queue for browser agent (if running, it'll pick it up and type it out)
+  queueDraftForBrowser(text);
   try {
     birdTweet(text);
-    log("tweet", `posted: "${text.slice(0, 40)}"`, "ok");
-  } catch (err) {
-    log("tweet", errMsg(err), "fail");
+    log("tweet", `posted via bird: "${text.slice(0, 40)}"`, "ok");
+  } catch {
+    // bird failed (no tokens?) — draft is queued for browser agent
+    log("tweet", `queued for browser: "${text.slice(0, 40)}"`, "ok");
   }
 }
 
