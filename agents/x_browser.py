@@ -294,10 +294,12 @@ async def main():
         headless=headless,
         no_sandbox=True,
         browser_args=[
-            "--disable-gpu",
             "--disable-dev-shm-usage",
             "--no-first-run",
             f"--user-data-dir={profile_dir}",
+            "--enable-unsafe-swiftshader",    # software rendering for media on WSL
+            "--enable-features=VaapiVideoDecoder",  # hardware video decode if available
+            "--ignore-gpu-blocklist",         # let GPU try even on WSL
         ],
     )
 
@@ -319,12 +321,16 @@ async def main():
             # Scroll and engage
             likes, follows = await scroll_and_engage(browser, config)
 
-            # Pause between sessions
+            # Pause between sessions — close tab like a human would
             pause_min = config["pause_between_sessions"]
             pause_actual = random.randint(int(pause_min * 0.7), int(pause_min * 1.3))
-            print(f"\n  Pausing {pause_actual} min before next session...")
+            print(f"\n  Closing tab, pausing {pause_actual} min...")
             log_action("pause", f"{pause_actual} min")
+            # Navigate away (humans don't stare at Twitter for 60 min)
+            page = await browser.get("about:blank")
             await asyncio.sleep(pause_actual * 60)
+            # Come back
+            print(f"  Resuming...")
 
     except KeyboardInterrupt:
         print("\nShutting down...")
@@ -351,10 +357,12 @@ async def setup_mode():
         headless=False,
         no_sandbox=True,
         browser_args=[
-            "--disable-gpu",
             "--disable-dev-shm-usage",
             "--no-first-run",
             f"--user-data-dir={profile_dir}",
+            "--enable-unsafe-swiftshader",    # software rendering for media on WSL
+            "--enable-features=VaapiVideoDecoder",  # hardware video decode if available
+            "--ignore-gpu-blocklist",         # let GPU try even on WSL
         ],
     )
 
