@@ -1,19 +1,19 @@
 """
-X/Twitter Browser Agent — autonomous background browser that acts like a human on X.
-Uses zendriver (undetectable CDP) for stealth browser control.
-Scrolls, likes, follows, and engages naturally with randomized human-like timing.
+X/Twitter Browser Agent — Hermes-inspired autonomous engagement agent.
+Uses zendriver (undetectable CDP) + LLM decision-making (like Hermes Agent).
+
+Architecture (inspired by Hermes Agent by Nous Research):
+- LLM decides everything: like, skip, follow, reply, what to reply
+- Post-session reflection: reviews actions, extracts learnings for next session
+- Skill memory: successful patterns saved as files, loaded at session start
+- Human-like behavior: randomized timing, pauses, tab closing between sessions
 
 Usage:
   source .venv/bin/activate
-  python agents/x_browser.py [--chrome | --opera] [--headless]
-
-The agent:
-1. Opens X.com in a real browser (Chrome or Opera)
-2. Scrolls the feed like a human (variable speed, pauses)
-3. Likes posts that match your interests
-4. Follows accounts that post good content
-5. Can post drafts you provide via a queue file
-6. Logs all actions for the RL pipeline
+  python agents/x_browser.py              # Run engagement agent
+  python agents/x_browser.py --setup      # Login + VPN setup
+  python agents/x_browser.py --seed       # Follow niche accounts to fix feed
+  python agents/x_browser.py --windows    # Connect to Windows Chrome via CDP
 """
 
 import asyncio
@@ -32,45 +32,39 @@ HOME_DIR = Path.home() / ".moltui"
 DRAFT_QUEUE = HOME_DIR / "tweet-drafts.json"
 ACTION_LOG = HOME_DIR / "x-agent-log.json"
 CONFIG_FILE = HOME_DIR / "x-agent-config.json"
+LEARNINGS_FILE = HOME_DIR / "x-agent-learnings.json"
+ZAI_CONFIG = HOME_DIR / "config.json"
 
 DEFAULT_CONFIG = {
-    "interests": ["AI", "databases", "postgres", "rust", "typescript", "infrastructure", "developer tools",
-                   "LLM", "open source", "performance", "systems programming", "compiler"],
-    # Target accounts to visit and engage with — these are YOUR niche leaders
+    "interests": ["AI", "databases", "postgres", "rust", "typescript", "infrastructure",
+                   "developer tools", "LLM", "open source", "performance", "systems programming"],
     "target_accounts": [
-        "mattpocockuk",       # TypeScript
-        "theo",               # web dev, hot takes
-        "levelsio",           # indie maker
-        "rauchg",             # Vercel CEO
-        "swaborern",          # Swyx - AI/dev
-        "jonhoo",             # Rust
-        "AndyPavlo",          # databases
-        "kaborarpathy",       # Andrej Karpathy - AI
-        "kelaborseyhightower",# infra
+        "mattpocockuk", "t3dotgg", "levelsio", "rauchg", "swyx",
+        "jonhoo", "andy_pavlo", "karpathy", "kelseyhightower", "dhh",
+        "ThePrimeagen", "fireship_dev",
     ],
-    # Seed accounts — follow these first to fix the feed algorithm
-    # Run with --seed to follow all of them at once
     "seed_accounts": [
         # AI / ML
-        "kaborarpathy", "ylecun", "GoodFellowIan", "jimfan_", "DrJimFan",
-        "EMostaque", "ababoreramid_aboreg", "ClaboreméntDelangue",
-        # Dev tools / Infrastructure
-        "rauchg", "kelaborseyhightower", "mitchellh", "saborolomonstre",
+        "karpathy", "ylecun", "goodfellow_ian", "DrJimFan", "EMostaque",
+        "ClementDelangue", "Yoshua_Bengio", "sama", "lexfridman",
+        "realGeorgeHotz", "clattner_llvm",
+        # Dev tools / Infra
+        "rauchg", "kelseyhightower", "mitchellh", "solomonstre", "dhh", "youyuxi",
         # Rust
-        "jonhoo", "yaaborahel", "m_ou_se", "ManishEarth",
+        "jonhoo", "ManishEarth",
         # TypeScript / Web
-        "mattpocockuk", "theo", "ryanflorence", "kentcdodds",
+        "mattpocockuk", "t3dotgg", "ryanflorence", "kentcdodds", "dan_abramov2",
         # Databases
-        "AndyPavlo", "MarkCallaghanDB",
+        "andy_pavlo", "mdcallag",
         # Indie makers
-        "levelsio", "taboribo_maker", "marcaloops", "dannypostma",
-        # General tech thought leaders
-        "patrickc", "paulg", "naval", "elaboronmusk",
-        # AI agents / dev tools
-        "hwaborechase", "jeaborffdean", "Harrison_Chase",
+        "levelsio", "tibo_maker", "marc_louvion", "dannypostmaa",
+        # Tech leaders
+        "patrickc", "paulg", "naval",
+        # AI agents / dev
+        "hwchase17", "JeffDean", "Suhail",
+        # Dev content
+        "ThePrimeagen", "fireship_dev",
     ],
-    "like_probability": 0.5,
-    "follow_probability": 0.15,
     "scroll_speed_min": 2.0,
     "scroll_speed_max": 8.0,
     "session_duration_min": 20,
@@ -78,6 +72,7 @@ DEFAULT_CONFIG = {
     "pause_between_sessions": 60,
     "max_likes_per_session": 20,
     "max_follows_per_session": 5,
+    "max_replies_per_session": 3,
     "target_visits_per_session": 3,
 }
 
@@ -94,7 +89,6 @@ def load_config() -> dict:
 
 
 def log_action(action: str, detail: str, status: str = "ok"):
-    """Append to action log — consumed by moltui's RL pipeline."""
     logs = []
     if ACTION_LOG.exists():
         try:
@@ -108,24 +102,175 @@ def log_action(action: str, detail: str, status: str = "ok"):
         "detail": detail[:100],
         "status": status,
     })
-    # Keep last 500 entries
     if len(logs) > 500:
         logs = logs[-500:]
     ACTION_LOG.write_text(json.dumps(logs, indent=2))
     print(f"  [{status}] {action}: {detail[:60]}")
 
 
+def load_learnings() -> list[str]:
+    if LEARNINGS_FILE.exists():
+        try:
+            return json.loads(LEARNINGS_FILE.read_text())
+        except Exception:
+            pass
+    return []
+
+
+def save_learnings(learnings: list[str]):
+    if len(learnings) > 50:
+        learnings = learnings[-50:]
+    LEARNINGS_FILE.write_text(json.dumps(learnings, indent=2))
+
+
+# ── LLM Integration (Z.ai) ──
+
+def get_zai_config() -> tuple[str, str] | None:
+    """Load Z.ai API key and model from moltui config."""
+    if ZAI_CONFIG.exists():
+        try:
+            cfg = json.loads(ZAI_CONFIG.read_text())
+            key = cfg.get("zaiApiKey", "")
+            model = cfg.get("zaiModel", "GLM-4.7-FlashX")
+            if key:
+                return key, model
+        except Exception:
+            pass
+    return None
+
+
+async def llm_decide(tweet_text: str, author: str, learnings: list[str]) -> dict:
+    """LLM decides what to do with a tweet. Returns {action, reply_text}."""
+    zai = get_zai_config()
+    if not zai:
+        return {"action": "skip"}
+
+    key, model = zai
+    learnings_block = ""
+    if learnings:
+        learnings_block = "\n\nLEARNED FROM PAST SESSIONS:\n" + "\n".join(f"- {l}" for l in learnings[-10:])
+
+    prompt = f"""You are a Twitter engagement strategist for @ItsRoboki (Jagrit), a developer who builds postgres extensions, Rust tools, and AI agents.
+
+GOAL: Build authentic relationships in tech Twitter by engaging meaningfully.
+{learnings_block}
+
+TWEET by @{author}:
+"{tweet_text[:400]}"
+
+Decide ONE action. Reply with EXACTLY one of these formats:
+LIKE - this tweet is relevant and worth engaging with
+REPLY: [your reply text, max 200 chars, casual lowercase, no hashtags]
+FOLLOW - this person posts consistently valuable content in our niche
+SKIP - not relevant or not worth engaging with
+
+Rules for REPLY (the most valuable action — 75x engagement weight):
+- Only reply if you can add genuine value or a unique perspective
+- Sound like a real dev, not a bot — casual, lowercase, opinionated
+- Reference your own experience when possible (postgres, rust, AI agents)
+- Never be generic ("great post!", "so true!")
+- Never use hashtags or emojis in replies"""
+
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.z.ai/api/paas/v4/chat/completions",
+            data=json.dumps({
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 80,
+                "temperature": 0.9,
+                "stream": False,
+                "thinking": {"type": "disabled"},
+            }).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        data = json.loads(resp.read())
+        answer = data["choices"][0]["message"]["content"].strip()
+
+        if answer.startswith("REPLY:"):
+            reply_text = answer[6:].strip().strip('"').strip("'")[:200]
+            # Sanitize AI signatures
+            reply_text = reply_text.replace("—", "-").replace(""", '"').replace(""", '"')
+            return {"action": "reply", "reply_text": reply_text}
+        elif answer.startswith("LIKE"):
+            return {"action": "like"}
+        elif answer.startswith("FOLLOW"):
+            return {"action": "follow"}
+        else:
+            return {"action": "skip"}
+    except Exception as e:
+        log_action("llm", f"decide failed: {str(e)[:40]}", "fail")
+        return {"action": "skip"}
+
+
+async def llm_reflect(session_log: list[dict], learnings: list[str]) -> list[str]:
+    """Post-session reflection — extract learnings from what happened."""
+    zai = get_zai_config()
+    if not zai:
+        return learnings
+
+    key, model = zai
+    log_summary = "\n".join(
+        f"[{e['action']}] {e['detail']}" for e in session_log[-30:]
+    )
+
+    prompt = f"""Review this Twitter engagement session and extract 1-3 learnings.
+
+SESSION LOG:
+{log_summary}
+
+EXISTING LEARNINGS:
+{chr(10).join(f'- {l}' for l in learnings[-10:]) if learnings else '(none yet)'}
+
+What patterns worked? What should we do more of? What should we avoid?
+Reply with 1-3 bullet points, each on its own line starting with "- ".
+Keep each under 80 chars. Only write genuinely new insights, not repeats."""
+
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://api.z.ai/api/paas/v4/chat/completions",
+            data=json.dumps({
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 150,
+                "temperature": 0.7,
+                "stream": False,
+                "thinking": {"type": "disabled"},
+            }).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        )
+        resp = urllib.request.urlopen(req, timeout=15)
+        data = json.loads(resp.read())
+        answer = data["choices"][0]["message"]["content"].strip()
+
+        new_learnings = [
+            line.lstrip("- ").strip()[:80]
+            for line in answer.split("\n")
+            if line.strip().startswith("-") and len(line.strip()) > 5
+        ]
+        for l in new_learnings:
+            if l not in learnings:
+                learnings.append(l)
+                log_action("learn", l)
+
+        save_learnings(learnings)
+    except Exception as e:
+        log_action("reflect", f"failed: {str(e)[:40]}", "fail")
+
+    return learnings
+
+
 # ── Human-like behavior ──
 
 async def human_delay(min_s: float = 0.5, max_s: float = 2.0):
-    """Random delay that mimics human reaction time."""
     await asyncio.sleep(random.uniform(min_s, max_s))
 
 
 async def human_scroll(page):
-    """Scroll down like a human — variable distance, sometimes scroll up."""
     distance = random.randint(200, 600)
-    # 10% chance to scroll up slightly (humans do this)
     if random.random() < 0.1:
         distance = -random.randint(50, 150)
     await page.evaluate(f"window.scrollBy(0, {distance})")
@@ -133,31 +278,22 @@ async def human_scroll(page):
 
 
 async def human_type(element, text: str):
-    """Type text with human-like speed — variable delays between keystrokes."""
     await element.clear_input()
     for char in text:
         await element.send_keys(char)
-        await asyncio.sleep(random.uniform(0.03, 0.12))  # 30-120ms per key
+        await asyncio.sleep(random.uniform(0.03, 0.12))
 
 
 # ── Core agent logic ──
 
-async def is_relevant(text: str, interests: list[str]) -> bool:
-    """Check if post text matches user's interests."""
-    lower = text.lower()
-    return any(interest.lower() in lower for interest in interests)
-
-
-async def engage_target_account(browser, handle: str, config: dict) -> tuple[int, int]:
-    """Visit a target creator's profile and engage with their recent posts."""
-    likes = 0
-    follows = 0
+async def engage_target_account(browser, handle: str, config: dict, learnings: list[str]) -> tuple[int, int, int]:
+    """Visit a target creator's profile and engage intelligently."""
+    likes, follows, replies = 0, 0, 0
     try:
         page = await browser.get(f"https://x.com/{handle}")
         await human_delay(3, 5)
         log_action("visit", f"@{handle} profile")
 
-        # Scroll through their recent posts
         for scroll_i in range(random.randint(3, 6)):
             await human_scroll(page)
             await asyncio.sleep(random.uniform(2, 5))
@@ -169,178 +305,195 @@ async def engage_target_account(browser, handle: str, config: dict) -> tuple[int
 
                 tweet = articles[min(scroll_i, len(articles) - 1)]
                 tweet_text = await tweet.get_attribute("innerText") or ""
+                if not tweet_text.strip():
+                    continue
 
-                # Like their posts (higher rate for target accounts)
-                if random.random() < config["like_probability"] and likes < 3:
+                # LLM decides what to do
+                decision = await llm_decide(tweet_text[:500], handle, learnings)
+
+                if decision["action"] == "like" and likes < 3:
                     try:
                         like_btn = await tweet.query_selector('[data-testid="like"]')
                         if like_btn:
                             await human_delay(0.5, 1.5)
                             await like_btn.click()
                             likes += 1
-                            snippet = tweet_text[:40].replace("\n", " ")
-                            log_action("like", f"@{handle}: {snippet}")
+                            log_action("like", f"@{handle}: {tweet_text[:40].replace(chr(10), ' ')}")
                             await human_delay(1, 3)
+                    except Exception:
+                        pass
+
+                elif decision["action"] == "reply" and replies < config.get("max_replies_per_session", 3):
+                    try:
+                        reply_btn = await tweet.query_selector('[data-testid="reply"]')
+                        if reply_btn:
+                            await human_delay(1, 2)
+                            await reply_btn.click()
+                            await human_delay(1, 2)
+                            # Find reply compose box
+                            compose = await page.query_selector('[data-testid="tweetTextarea_0"]')
+                            if compose:
+                                await human_type(compose, decision["reply_text"])
+                                await human_delay(1, 2)
+                                send_btn = await page.query_selector('[data-testid="tweetButton"]')
+                                if send_btn:
+                                    await send_btn.click()
+                                    replies += 1
+                                    log_action("reply", f"@{handle}: {decision['reply_text'][:40]}")
+                                    await human_delay(2, 4)
+                    except Exception:
+                        pass
+
+                elif decision["action"] == "follow":
+                    try:
+                        follow_btns = await page.query_selector_all('[data-testid$="-follow"]')
+                        for btn in follow_btns:
+                            btn_text = await btn.get_attribute("innerText") or ""
+                            if btn_text.strip() == "Follow":
+                                await human_delay(1, 2)
+                                await btn.click()
+                                follows += 1
+                                log_action("follow", f"@{handle}")
+                                break
                     except Exception:
                         pass
 
             except Exception:
                 pass
 
-            # 20% chance to pause and "read" like a human
             if random.random() < 0.2:
                 await asyncio.sleep(random.uniform(5, 12))
-
-        # Follow if not already following (check for Follow button, not Following)
-        if random.random() < config["follow_probability"]:
-            try:
-                follow_btns = await page.query_selector_all('[data-testid$="-follow"]')
-                for btn in follow_btns:
-                    btn_text = await btn.get_attribute("innerText") or ""
-                    if btn_text.strip() == "Follow":
-                        await human_delay(1, 2)
-                        await btn.click()
-                        follows += 1
-                        log_action("follow", f"@{handle}")
-                        break
-            except Exception:
-                pass
 
     except Exception as e:
         log_action("visit", f"@{handle} failed: {str(e)[:40]}", "fail")
 
-    return likes, follows
+    return likes, follows, replies
 
 
-async def scroll_and_engage(browser, config: dict):
-    """Main engagement loop — visit targets first, then scroll feed."""
+async def scroll_and_engage(browser, config: dict, learnings: list[str]):
+    """Main engagement loop — visit targets first, then scroll feed with LLM decisions."""
 
-    # Phase 1: Visit target accounts (the real growth strategy)
+    total_likes, total_follows, total_replies = 0, 0, 0
+
+    # Phase 1: Visit target accounts
     target_accounts = config.get("target_accounts", [])
     if target_accounts:
         targets = random.sample(target_accounts, min(config.get("target_visits_per_session", 3), len(target_accounts)))
         print(f"  Phase 1: Visiting {len(targets)} target accounts...")
         for handle in targets:
-            t_likes, t_follows = await engage_target_account(browser, handle, config)
-            await human_delay(3, 8)  # pause between profile visits like a human
+            l, f, r = await engage_target_account(browser, handle, config, learnings)
+            total_likes += l
+            total_follows += f
+            total_replies += r
+            await human_delay(3, 8)
 
-    # Phase 2: Scroll home feed for broader engagement
-    print(f"  Phase 2: Scrolling home feed...")
+    # Phase 2: Scroll home feed with LLM decisions
+    print(f"  Phase 2: Scrolling home feed (LLM-guided)...")
     page = await browser.get("https://x.com/home")
     await human_delay(3, 5)
 
     session_start = time.time()
-    session_minutes = random.randint(
-        config["session_duration_min"],
-        config["session_duration_max"]
-    )
-    likes_this_session = 0
-    follows_this_session = 0
-
-    log_action("session", f"started ({session_minutes} min planned)")
-    print(f"\n  Session: {session_minutes} min, scrolling feed...")
+    session_minutes = random.randint(config["session_duration_min"], config["session_duration_max"])
+    log_action("session", f"started ({session_minutes} min)")
 
     while True:
         elapsed = (time.time() - session_start) / 60
         if elapsed >= session_minutes:
             break
 
-        # Scroll
         await human_scroll(page)
-        scroll_wait = random.uniform(
-            config["scroll_speed_min"],
-            config["scroll_speed_max"]
-        )
-        await asyncio.sleep(scroll_wait)
+        await asyncio.sleep(random.uniform(config["scroll_speed_min"], config["scroll_speed_max"]))
 
-        # Try to find tweet articles on the page
         try:
             articles = await page.query_selector_all('article[data-testid="tweet"]')
             if not articles:
                 continue
 
-            # Pick a random visible tweet to potentially engage with
             tweet = random.choice(articles[-5:]) if len(articles) > 5 else random.choice(articles)
             tweet_text = await tweet.get_attribute("innerText") or ""
-
-            if not await is_relevant(tweet_text[:500], config["interests"]):
+            if not tweet_text.strip():
                 continue
 
-            # Like (with probability)
-            if (random.random() < config["like_probability"]
-                    and likes_this_session < config["max_likes_per_session"]):
+            # LLM decides
+            decision = await llm_decide(tweet_text[:500], "feed", learnings)
+
+            if decision["action"] == "like" and total_likes < config["max_likes_per_session"]:
                 try:
                     like_btn = await tweet.query_selector('[data-testid="like"]')
                     if like_btn:
                         await human_delay(0.5, 1.5)
                         await like_btn.click()
-                        likes_this_session += 1
-                        snippet = tweet_text[:50].replace("\n", " ")
-                        log_action("like", snippet)
+                        total_likes += 1
+                        log_action("like", tweet_text[:50].replace("\n", " "))
                         await human_delay(1, 3)
                 except Exception:
                     pass
 
-            # Follow (with lower probability)
-            if (random.random() < config["follow_probability"]
-                    and follows_this_session < config["max_follows_per_session"]):
+            elif decision["action"] == "reply" and total_replies < config.get("max_replies_per_session", 3):
                 try:
-                    # Find the author link and follow button
+                    reply_btn = await tweet.query_selector('[data-testid="reply"]')
+                    if reply_btn:
+                        await human_delay(1, 2)
+                        await reply_btn.click()
+                        await human_delay(1, 2)
+                        compose = await page.query_selector('[data-testid="tweetTextarea_0"]')
+                        if compose:
+                            await human_type(compose, decision["reply_text"])
+                            await human_delay(1, 2)
+                            send_btn = await page.query_selector('[data-testid="tweetButton"]')
+                            if send_btn:
+                                await send_btn.click()
+                                total_replies += 1
+                                log_action("reply", decision["reply_text"][:50])
+                                await human_delay(2, 4)
+                except Exception:
+                    pass
+
+            elif decision["action"] == "follow" and total_follows < config["max_follows_per_session"]:
+                try:
                     follow_btn = await tweet.query_selector('[data-testid$="-follow"]')
                     if follow_btn:
                         btn_text = await follow_btn.get_attribute("innerText") or ""
-                        if "Follow" in btn_text and "Following" not in btn_text:
+                        if btn_text.strip() == "Follow":
                             await human_delay(1, 2)
                             await follow_btn.click()
-                            follows_this_session += 1
-                            log_action("follow", f"followed from feed")
+                            total_follows += 1
+                            log_action("follow", "from feed")
                             await human_delay(2, 4)
                 except Exception:
                     pass
 
-        except Exception as e:
-            # Page might have changed, just keep scrolling
+        except Exception:
             pass
 
-        # Occasionally pause like a human reading (20% chance)
         if random.random() < 0.2:
-            pause = random.uniform(5, 15)
-            await asyncio.sleep(pause)
+            await asyncio.sleep(random.uniform(5, 15))
 
-    log_action("session", f"ended — {likes_this_session} likes, {follows_this_session} follows")
-    return likes_this_session, follows_this_session
+    log_action("session", f"ended — {total_likes}L {total_follows}F {total_replies}R")
+    return total_likes, total_follows, total_replies
 
 
 async def post_draft(browser, config: dict):
-    """Post a tweet from the draft queue if available."""
     if not DRAFT_QUEUE.exists():
         return False
-
     try:
         drafts = json.loads(DRAFT_QUEUE.read_text())
         if not drafts:
             return False
-
         draft = drafts.pop(0)
         DRAFT_QUEUE.write_text(json.dumps(drafts, indent=2))
-
         text = draft.get("text", "")
         if not text:
             return False
 
         page = await browser.get("https://x.com/compose/tweet")
         await human_delay(2, 3)
-
-        # Find the tweet compose box
         compose = await page.query_selector('[data-testid="tweetTextarea_0"]')
         if not compose:
             compose = await page.query_selector('[role="textbox"]')
-
         if compose:
             await human_type(compose, text)
             await human_delay(1, 2)
-
-            # Click the post button
             post_btn = await page.query_selector('[data-testid="tweetButtonInline"]')
             if not post_btn:
                 post_btn = await page.query_selector('[data-testid="tweetButton"]')
@@ -349,10 +502,8 @@ async def post_draft(browser, config: dict):
                 log_action("post", text[:50])
                 await human_delay(2, 4)
                 return True
-
     except Exception as e:
         log_action("post", f"failed: {str(e)[:50]}", "fail")
-
     return False
 
 
@@ -360,41 +511,58 @@ async def post_draft(browser, config: dict):
 
 async def main():
     headless = "--headless" in sys.argv
-
     config = load_config()
+    learnings = load_learnings()
+
+    has_llm = get_zai_config() is not None
     print("X Browser Agent starting...")
-    print(f"  Interests: {', '.join(config['interests'][:5])}...")
+    print(f"  LLM brain: {'Z.ai connected' if has_llm else 'OFFLINE (keyword matching only)'}")
+    print(f"  Learnings: {len(learnings)} from past sessions")
     print(f"  Targets: {len(config.get('target_accounts', []))} accounts")
-    print(f"  Like rate: {config['like_probability']*100:.0f}%")
 
     browser = await launch_browser(headless=headless)
-    print("Browser launched. Navigating to X.com...")
-    print("Make sure you're logged in! If not, log in manually and restart.\n")
+    print("Browser launched.\n")
 
     session_count = 0
+    session_log_start = 0
 
     try:
         while True:
             session_count += 1
             print(f"=== Session #{session_count} ===")
 
-            # Check for drafts to post (before scrolling)
+            # Track where this session's log entries start
+            try:
+                existing_log = json.loads(ACTION_LOG.read_text()) if ACTION_LOG.exists() else []
+                session_log_start = len(existing_log)
+            except Exception:
+                session_log_start = 0
+
+            # Post drafts
             posted = await post_draft(browser, config)
             if posted:
                 await human_delay(5, 10)
 
-            # Scroll and engage
-            likes, follows = await scroll_and_engage(browser, config)
+            # Engage
+            likes, follows, replies = await scroll_and_engage(browser, config, learnings)
 
-            # Pause between sessions — close tab like a human would
+            # Post-session reflection (Hermes-inspired)
+            try:
+                full_log = json.loads(ACTION_LOG.read_text()) if ACTION_LOG.exists() else []
+                session_entries = full_log[session_log_start:]
+                if session_entries and has_llm:
+                    print("  Reflecting on session...")
+                    learnings = await llm_reflect(session_entries, learnings)
+            except Exception:
+                pass
+
+            # Pause
             pause_min = config["pause_between_sessions"]
             pause_actual = random.randint(int(pause_min * 0.7), int(pause_min * 1.3))
             print(f"\n  Closing tab, pausing {pause_actual} min...")
             log_action("pause", f"{pause_actual} min")
-            # Navigate away (humans don't stare at Twitter for 60 min)
             page = await browser.get("about:blank")
             await asyncio.sleep(pause_actual * 60)
-            # Come back
             print(f"  Resuming...")
 
     except KeyboardInterrupt:
@@ -405,34 +573,27 @@ async def main():
 
 
 async def setup_mode():
-    """Launch browser for manual login and VPN setup."""
     print("Setup mode — log in and configure VPN")
     print("  Press Ctrl+C when done.\n")
-
     browser = await launch_browser(headless=False)
-
     page = await browser.get("https://x.com/login")
     print("Browser open — log in, enable VPN, set location to Americas.")
-
     try:
         while True:
             await asyncio.sleep(5)
     except (KeyboardInterrupt, asyncio.CancelledError):
-        print("\nSession saved. Run without --setup to start the agent.")
+        print("\nSession saved.")
         await browser.stop()
 
 
 async def seed_mode():
-    """Follow all seed accounts to fix the feed algorithm. Run once on a new account."""
     config = load_config()
     seed_accounts = config.get("seed_accounts", [])
     if not seed_accounts:
         print("No seed accounts configured.")
         return
 
-    print(f"Seed mode — following {len(seed_accounts)} accounts to fix your feed")
-    print("  This trains X's algorithm to show you tech content\n")
-
+    print(f"Seed mode — following {len(seed_accounts)} accounts to fix your feed\n")
     browser = await launch_browser(headless=False)
     followed = 0
 
@@ -440,8 +601,6 @@ async def seed_mode():
         try:
             page = await browser.get(f"https://x.com/{handle}")
             await human_delay(2, 4)
-
-            # Look for Follow button (not Following)
             follow_btns = await page.query_selector_all('[data-testid$="-follow"]')
             for btn in follow_btns:
                 btn_text = await btn.get_attribute("innerText") or ""
@@ -453,30 +612,21 @@ async def seed_mode():
                     log_action("seed-follow", f"@{handle}")
                     break
             else:
-                print(f"  [skip] @{handle} (already following or not found)")
-
-            # Human-like delay between follows
+                print(f"  [skip] @{handle}")
             await asyncio.sleep(random.uniform(3, 8))
-
         except Exception as e:
             print(f"  [fail] @{handle}: {str(e)[:40]}")
 
     print(f"\nDone! Followed {followed} new accounts.")
-    print("Run a few sessions now — your feed should improve within hours.")
     await browser.stop()
 
 
 async def launch_browser(headless=False):
-    """Launch browser — supports WSL Opera/Chromium or Windows Chrome via CDP."""
     profile_dir = os.path.expanduser("~/.moltui/opera-profile")
     os.makedirs(profile_dir, exist_ok=True)
 
     if "--windows" in sys.argv:
-        # Connect to Windows Chrome running with --remote-debugging-port=9222
-        # User must launch Chrome manually first:
-        #   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
         print("  Connecting to Windows Chrome via CDP (localhost:9222)...")
-        import websockets
         import urllib.request
         try:
             resp = urllib.request.urlopen("http://localhost:9222/json/version")
@@ -485,12 +635,10 @@ async def launch_browser(headless=False):
             browser = await zd.start(browser_websocket_url=ws_url)
             print(f"  Connected to {data.get('Browser', 'Chrome')}")
             return browser
-        except Exception as e:
-            print(f"  ERROR: Can't connect to Windows Chrome. Launch it first with:")
-            print(f'  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-port=9222')
+        except Exception:
+            print("  ERROR: Launch Chrome first with: chrome.exe --remote-debugging-port=9222")
             sys.exit(1)
 
-    # WSL browser
     browser_options = [
         ("/usr/bin/opera", "Opera"),
         (os.path.expanduser("~/.local/chromium/chrome-linux/chrome"), "Chromium"),
