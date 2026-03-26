@@ -34,16 +34,34 @@ ACTION_LOG = HOME_DIR / "x-agent-log.json"
 CONFIG_FILE = HOME_DIR / "x-agent-config.json"
 
 DEFAULT_CONFIG = {
-    "interests": ["AI", "databases", "postgres", "rust", "typescript", "infrastructure", "developer tools"],
-    "like_probability": 0.3,       # 30% chance to like a relevant post
-    "follow_probability": 0.1,     # 10% chance to follow a relevant author
-    "scroll_speed_min": 2.0,       # seconds between scrolls
-    "scroll_speed_max": 8.0,       # randomized human feel
-    "session_duration_min": 20,    # minutes per session
+    "interests": ["AI", "databases", "postgres", "rust", "typescript", "infrastructure", "developer tools",
+                   "LLM", "open source", "performance", "systems programming", "compiler"],
+    # Target accounts to visit and engage with — these are YOUR niche leaders
+    # The agent visits their profiles and engages with their recent posts
+    "target_accounts": [
+        "mattpocockuk",   # TypeScript
+        "theo",           # web dev, hot takes
+        "levelsio",       # indie maker
+        "rauchg",         # Vercel CEO
+        "swyx",           # AI/dev
+        "tabormakers",    # indie hacker
+        "jonhoo",         # Rust
+        "andy_pavlo",     # databases
+        "iaboreskine",    # Postgres
+        "kaborarpathy",   # AI
+        "kelseyhaborightower", # infrastructure
+    ],
+    "like_probability": 0.5,       # 50% — like more of niche content
+    "follow_probability": 0.15,    # 15% — follow authors in your niche
+    "scroll_speed_min": 2.0,
+    "scroll_speed_max": 8.0,
+    "session_duration_min": 20,
     "session_duration_max": 45,
-    "pause_between_sessions": 60,  # minutes between sessions
-    "max_likes_per_session": 15,
+    "pause_between_sessions": 60,
+    "max_likes_per_session": 20,
     "max_follows_per_session": 5,
+    # How many target accounts to visit per session
+    "target_visits_per_session": 3,
 }
 
 
@@ -113,10 +131,86 @@ async def is_relevant(text: str, interests: list[str]) -> bool:
     return any(interest.lower() in lower for interest in interests)
 
 
+async def engage_target_account(browser, handle: str, config: dict) -> tuple[int, int]:
+    """Visit a target creator's profile and engage with their recent posts."""
+    likes = 0
+    follows = 0
+    try:
+        page = await browser.get(f"https://x.com/{handle}")
+        await human_delay(3, 5)
+        log_action("visit", f"@{handle} profile")
+
+        # Scroll through their recent posts
+        for scroll_i in range(random.randint(3, 6)):
+            await human_scroll(page)
+            await asyncio.sleep(random.uniform(2, 5))
+
+            try:
+                articles = await page.query_selector_all('article[data-testid="tweet"]')
+                if not articles:
+                    continue
+
+                tweet = articles[min(scroll_i, len(articles) - 1)]
+                tweet_text = await tweet.get_attribute("innerText") or ""
+
+                # Like their posts (higher rate for target accounts)
+                if random.random() < config["like_probability"] and likes < 3:
+                    try:
+                        like_btn = await tweet.query_selector('[data-testid="like"]')
+                        if like_btn:
+                            await human_delay(0.5, 1.5)
+                            await like_btn.click()
+                            likes += 1
+                            snippet = tweet_text[:40].replace("\n", " ")
+                            log_action("like", f"@{handle}: {snippet}")
+                            await human_delay(1, 3)
+                    except Exception:
+                        pass
+
+            except Exception:
+                pass
+
+            # 20% chance to pause and "read" like a human
+            if random.random() < 0.2:
+                await asyncio.sleep(random.uniform(5, 12))
+
+        # Follow if not already following (check for Follow button, not Following)
+        if random.random() < config["follow_probability"]:
+            try:
+                follow_btns = await page.query_selector_all('[data-testid$="-follow"]')
+                for btn in follow_btns:
+                    btn_text = await btn.get_attribute("innerText") or ""
+                    if btn_text.strip() == "Follow":
+                        await human_delay(1, 2)
+                        await btn.click()
+                        follows += 1
+                        log_action("follow", f"@{handle}")
+                        break
+            except Exception:
+                pass
+
+    except Exception as e:
+        log_action("visit", f"@{handle} failed: {str(e)[:40]}", "fail")
+
+    return likes, follows
+
+
 async def scroll_and_engage(browser, config: dict):
-    """Main engagement loop — scroll feed, like, follow."""
+    """Main engagement loop — visit targets first, then scroll feed."""
+
+    # Phase 1: Visit target accounts (the real growth strategy)
+    target_accounts = config.get("target_accounts", [])
+    if target_accounts:
+        targets = random.sample(target_accounts, min(config.get("target_visits_per_session", 3), len(target_accounts)))
+        print(f"  Phase 1: Visiting {len(targets)} target accounts...")
+        for handle in targets:
+            t_likes, t_follows = await engage_target_account(browser, handle, config)
+            await human_delay(3, 8)  # pause between profile visits like a human
+
+    # Phase 2: Scroll home feed for broader engagement
+    print(f"  Phase 2: Scrolling home feed...")
     page = await browser.get("https://x.com/home")
-    await human_delay(3, 5)  # wait for page load
+    await human_delay(3, 5)
 
     session_start = time.time()
     session_minutes = random.randint(
