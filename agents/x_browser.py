@@ -37,22 +37,40 @@ DEFAULT_CONFIG = {
     "interests": ["AI", "databases", "postgres", "rust", "typescript", "infrastructure", "developer tools",
                    "LLM", "open source", "performance", "systems programming", "compiler"],
     # Target accounts to visit and engage with — these are YOUR niche leaders
-    # The agent visits their profiles and engages with their recent posts
     "target_accounts": [
-        "mattpocockuk",   # TypeScript
-        "theo",           # web dev, hot takes
-        "levelsio",       # indie maker
-        "rauchg",         # Vercel CEO
-        "swyx",           # AI/dev
-        "tabormakers",    # indie hacker
-        "jonhoo",         # Rust
-        "andy_pavlo",     # databases
-        "iaboreskine",    # Postgres
-        "kaborarpathy",   # AI
-        "kelseyhaborightower", # infrastructure
+        "mattpocockuk",       # TypeScript
+        "theo",               # web dev, hot takes
+        "levelsio",           # indie maker
+        "rauchg",             # Vercel CEO
+        "swaborern",          # Swyx - AI/dev
+        "jonhoo",             # Rust
+        "AndyPavlo",          # databases
+        "kaborarpathy",       # Andrej Karpathy - AI
+        "kelaborseyhightower",# infra
     ],
-    "like_probability": 0.5,       # 50% — like more of niche content
-    "follow_probability": 0.15,    # 15% — follow authors in your niche
+    # Seed accounts — follow these first to fix the feed algorithm
+    # Run with --seed to follow all of them at once
+    "seed_accounts": [
+        # AI / ML
+        "kaborarpathy", "ylecun", "GoodFellowIan", "jimfan_", "DrJimFan",
+        "EMostaque", "ababoreramid_aboreg", "ClaboreméntDelangue",
+        # Dev tools / Infrastructure
+        "rauchg", "kelaborseyhightower", "mitchellh", "saborolomonstre",
+        # Rust
+        "jonhoo", "yaaborahel", "m_ou_se", "ManishEarth",
+        # TypeScript / Web
+        "mattpocockuk", "theo", "ryanflorence", "kentcdodds",
+        # Databases
+        "AndyPavlo", "MarkCallaghanDB",
+        # Indie makers
+        "levelsio", "taboribo_maker", "marcaloops", "dannypostma",
+        # General tech thought leaders
+        "patrickc", "paulg", "naval", "elaboronmusk",
+        # AI agents / dev tools
+        "hwaborechase", "jeaborffdean", "Harrison_Chase",
+    ],
+    "like_probability": 0.5,
+    "follow_probability": 0.15,
     "scroll_speed_min": 2.0,
     "scroll_speed_max": 8.0,
     "session_duration_min": 20,
@@ -60,7 +78,6 @@ DEFAULT_CONFIG = {
     "pause_between_sessions": 60,
     "max_likes_per_session": 20,
     "max_follows_per_session": 5,
-    # How many target accounts to visit per session
     "target_visits_per_session": 3,
 }
 
@@ -342,61 +359,15 @@ async def post_draft(browser, config: dict):
 # ── Main loop ──
 
 async def main():
-    # Parse args
-    use_opera = "--opera" in sys.argv
     headless = "--headless" in sys.argv
 
     config = load_config()
     print("X Browser Agent starting...")
-    print(f"  Browser: {'Opera' if use_opera else 'Chrome'}")
-    print(f"  Interests: {', '.join(config['interests'])}")
+    print(f"  Interests: {', '.join(config['interests'][:5])}...")
+    print(f"  Targets: {len(config.get('target_accounts', []))} accounts")
     print(f"  Like rate: {config['like_probability']*100:.0f}%")
-    print(f"  Follow rate: {config['follow_probability']*100:.0f}%")
 
-    # Launch browser
-    browser_args = []
-    browser_path = None
-
-    # Browser priority: Opera (has VPN) > standalone Chromium > system Chromium
-    browser_options = [
-        ("/usr/bin/opera", "Opera"),
-        (os.path.expanduser("~/.local/chromium/chrome-linux/chrome"), "Chromium (standalone)"),
-        ("/usr/bin/chromium-browser", "Chromium (system)"),
-    ]
-    browser_name = "unknown"
-    for path, name in browser_options:
-        if os.path.exists(path):
-            browser_path = path
-            browser_name = name
-            break
-
-    if not browser_path:
-        print("ERROR: No browser found. Install Opera (sudo apt install opera-stable) or Chromium.")
-        sys.exit(1)
-
-    # Persistent profile — pass as browser arg, not zendriver param (Opera compat)
-    profile_dir = os.path.expanduser("~/.moltui/opera-profile")
-    os.makedirs(profile_dir, exist_ok=True)
-
-    print(f"  Browser: {browser_name} ({browser_path})")
-    print(f"  Profile: {profile_dir}")
-    print(f"  Headless: {headless}")
-    print()
-
-    browser = await zd.start(
-        browser_executable_path=browser_path,
-        headless=headless,
-        no_sandbox=True,
-        browser_args=[
-            "--disable-dev-shm-usage",
-            "--no-first-run",
-            f"--user-data-dir={profile_dir}",
-            "--enable-unsafe-swiftshader",    # software rendering for media on WSL
-            "--enable-features=VaapiVideoDecoder",  # hardware video decode if available
-            "--ignore-gpu-blocklist",         # let GPU try even on WSL
-        ],
-    )
-
+    browser = await launch_browser(headless=headless)
     print("Browser launched. Navigating to X.com...")
     print("Make sure you're logged in! If not, log in manually and restart.\n")
 
@@ -434,31 +405,11 @@ async def main():
 
 
 async def setup_mode():
-    """Launch browser for manual login and VPN setup. Session persists in Opera's default profile."""
-    browser_path = "/usr/bin/opera"
-    if not os.path.exists(browser_path):
-        browser_path = os.path.expanduser("~/.local/chromium/chrome-linux/chrome")
-
-    profile_dir = os.path.expanduser("~/.moltui/opera-profile")
-    os.makedirs(profile_dir, exist_ok=True)
-
+    """Launch browser for manual login and VPN setup."""
     print("Setup mode — log in and configure VPN")
-    print(f"  Profile: {profile_dir}")
     print("  Press Ctrl+C when done.\n")
 
-    browser = await zd.start(
-        browser_executable_path=browser_path,
-        headless=False,
-        no_sandbox=True,
-        browser_args=[
-            "--disable-dev-shm-usage",
-            "--no-first-run",
-            f"--user-data-dir={profile_dir}",
-            "--enable-unsafe-swiftshader",    # software rendering for media on WSL
-            "--enable-features=VaapiVideoDecoder",  # hardware video decode if available
-            "--ignore-gpu-blocklist",         # let GPU try even on WSL
-        ],
-    )
+    browser = await launch_browser(headless=False)
 
     page = await browser.get("https://x.com/login")
     print("Browser open — log in, enable VPN, set location to Americas.")
@@ -471,8 +422,108 @@ async def setup_mode():
         await browser.stop()
 
 
+async def seed_mode():
+    """Follow all seed accounts to fix the feed algorithm. Run once on a new account."""
+    config = load_config()
+    seed_accounts = config.get("seed_accounts", [])
+    if not seed_accounts:
+        print("No seed accounts configured.")
+        return
+
+    print(f"Seed mode — following {len(seed_accounts)} accounts to fix your feed")
+    print("  This trains X's algorithm to show you tech content\n")
+
+    browser = await launch_browser(headless=False)
+    followed = 0
+
+    for handle in seed_accounts:
+        try:
+            page = await browser.get(f"https://x.com/{handle}")
+            await human_delay(2, 4)
+
+            # Look for Follow button (not Following)
+            follow_btns = await page.query_selector_all('[data-testid$="-follow"]')
+            for btn in follow_btns:
+                btn_text = await btn.get_attribute("innerText") or ""
+                if btn_text.strip() == "Follow":
+                    await human_delay(1, 2)
+                    await btn.click()
+                    followed += 1
+                    print(f"  [{followed}/{len(seed_accounts)}] Followed @{handle}")
+                    log_action("seed-follow", f"@{handle}")
+                    break
+            else:
+                print(f"  [skip] @{handle} (already following or not found)")
+
+            # Human-like delay between follows
+            await asyncio.sleep(random.uniform(3, 8))
+
+        except Exception as e:
+            print(f"  [fail] @{handle}: {str(e)[:40]}")
+
+    print(f"\nDone! Followed {followed} new accounts.")
+    print("Run a few sessions now — your feed should improve within hours.")
+    await browser.stop()
+
+
+async def launch_browser(headless=False):
+    """Launch browser — supports WSL Opera/Chromium or Windows Chrome via CDP."""
+    profile_dir = os.path.expanduser("~/.moltui/opera-profile")
+    os.makedirs(profile_dir, exist_ok=True)
+
+    if "--windows" in sys.argv:
+        # Connect to Windows Chrome running with --remote-debugging-port=9222
+        # User must launch Chrome manually first:
+        #   "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
+        print("  Connecting to Windows Chrome via CDP (localhost:9222)...")
+        import websockets
+        import urllib.request
+        try:
+            resp = urllib.request.urlopen("http://localhost:9222/json/version")
+            data = json.loads(resp.read())
+            ws_url = data["webSocketDebuggerUrl"]
+            browser = await zd.start(browser_websocket_url=ws_url)
+            print(f"  Connected to {data.get('Browser', 'Chrome')}")
+            return browser
+        except Exception as e:
+            print(f"  ERROR: Can't connect to Windows Chrome. Launch it first with:")
+            print(f'  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --remote-debugging-port=9222')
+            sys.exit(1)
+
+    # WSL browser
+    browser_options = [
+        ("/usr/bin/opera", "Opera"),
+        (os.path.expanduser("~/.local/chromium/chrome-linux/chrome"), "Chromium"),
+    ]
+    browser_path = None
+    for path, name in browser_options:
+        if os.path.exists(path):
+            browser_path = path
+            print(f"  Browser: {name}")
+            break
+
+    if not browser_path:
+        print("ERROR: No browser found.")
+        sys.exit(1)
+
+    return await zd.start(
+        browser_executable_path=browser_path,
+        headless=headless,
+        no_sandbox=True,
+        browser_args=[
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            f"--user-data-dir={profile_dir}",
+            "--enable-unsafe-swiftshader",
+            "--ignore-gpu-blocklist",
+        ],
+    )
+
+
 if __name__ == "__main__":
     if "--setup" in sys.argv:
         asyncio.run(setup_mode())
+    elif "--seed" in sys.argv:
+        asyncio.run(seed_mode())
     else:
         asyncio.run(main())
