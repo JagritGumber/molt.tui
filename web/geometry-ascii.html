@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Geometry Dash — ASCII</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; overflow: hidden; cursor: pointer; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ASCII chars by brightness
+const CHARS = ' .·:;-=+*#%@█';
+const FONT_SIZE = 12;
+const CHAR_W = FONT_SIZE * 0.6;
+const LINE_HEIGHT = FONT_SIZE + 1;
+
+// Game state
+let playerY = 0;
+let playerVel = 0;
+let grounded = true;
+let scrollX = 0;
+let speed = 3.5;
+let alive = true;
+let score = 0;
+let frame = 0;
+let particles = [];
+
+// Level generation
+const GROUND_Y = 0.7; // 70% down the screen
+const PLAYER_X = 0.2; // 20% from left
+
+const obstacles = [];
+const spikes = [];
+const platforms = [];
+
+function spawnLevel() {
+  // Generate obstacles ahead
+  const farX = scrollX + 200;
+  const lastObs = obstacles.length ? obstacles[obstacles.length - 1].x : scrollX + 50;
+
+  if (lastObs < farX) {
+    const gap = 25 + Math.random() * 20;
+    const x = lastObs + gap;
+    const type = Math.random();
+
+    if (type < 0.4) {
+      // Spike (triangle)
+      spikes.push({ x, w: 3, h: 4 });
+    } else if (type < 0.7) {
+      // Block obstacle
+      obstacles.push({ x, w: 3 + Math.floor(Math.random() * 3), h: 3 + Math.floor(Math.random() * 3) });
+    } else {
+      // Floating platform
+      platforms.push({ x, w: 6 + Math.floor(Math.random() * 4), y: -4 - Math.floor(Math.random() * 4) });
+      // Maybe spike after platform
+      if (Math.random() < 0.5) spikes.push({ x: x + 10, w: 3, h: 4 });
+    }
+  }
+}
+
+// Input
+function jump() {
+  if (grounded && alive) {
+    playerVel = -8;
+    grounded = false;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); jump(); }
+  if (!alive && e.key === 'r') restart();
+});
+canvas.addEventListener('click', () => { if (alive) jump(); else restart(); });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); if (alive) jump(); else restart(); });
+
+function restart() {
+  playerY = 0; playerVel = 0; grounded = true;
+  scrollX = 0; speed = 3.5; alive = true; score = 0; frame = 0;
+  obstacles.length = 0; spikes.length = 0; platforms.length = 0; particles.length = 0;
+}
+
+function addParticles(x, y, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      life: 20 + Math.random() * 20,
+    });
+  }
+}
+
+function render() {
+  const W = canvas.width;
+  const H = canvas.height;
+  const cols = Math.floor(W / CHAR_W);
+  const rows = Math.floor(H / LINE_HEIGHT);
+  const groundRow = Math.floor(rows * GROUND_Y);
+  const playerCol = Math.floor(cols * PLAYER_X);
+
+  // Build brightness grid
+  const grid = [];
+  const colorGrid = [];
+  for (let r = 0; r < rows; r++) {
+    grid[r] = new Float32Array(cols);
+    colorGrid[r] = new Array(cols).fill(null);
+  }
+
+  // Ground
+  for (let c = 0; c < cols; c++) {
+    grid[groundRow][c] = 0.3;
+    colorGrid[groundRow][c] = 'ground';
+    // Ground pattern scrolling
+    if ((c + Math.floor(scrollX)) % 8 === 0) {
+      grid[groundRow][c] = 0.5;
+    }
+  }
+
+  // Background grid pattern (scrolling)
+  for (let r = 0; r < groundRow; r++) {
+    for (let c = 0; c < cols; c++) {
+      const wx = c + scrollX;
+      if (Math.floor(wx) % 20 === 0 || r % 15 === 0) {
+        grid[r][c] = 0.03;
+        colorGrid[r][c] = 'bg';
+      }
+    }
+  }
+
+  // Obstacles (blocks)
+  for (const obs of obstacles) {
+    const startCol = Math.floor(obs.x - scrollX) + playerCol;
+    for (let dr = 0; dr < obs.h; dr++) {
+      for (let dc = 0; dc < obs.w; dc++) {
+        const r = groundRow - 1 - dr;
+        const c = startCol + dc;
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+          // Block border vs fill
+          const isBorder = dr === 0 || dr === obs.h - 1 || dc === 0 || dc === obs.w - 1;
+          grid[r][c] = isBorder ? 0.8 : 0.5;
+          colorGrid[r][c] = 'obstacle';
+        }
+      }
+    }
+  }
+
+  // Spikes (triangles)
+  for (const spike of spikes) {
+    const startCol = Math.floor(spike.x - scrollX) + playerCol;
+    for (let dr = 0; dr < spike.h; dr++) {
+      const width = Math.floor(spike.w * (1 - dr / spike.h));
+      const offset = Math.floor((spike.w - width) / 2);
+      for (let dc = offset; dc < offset + width; dc++) {
+        const r = groundRow - 1 - dr;
+        const c = startCol + dc;
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+          grid[r][c] = 0.9;
+          colorGrid[r][c] = 'spike';
+        }
+      }
+    }
+  }
+
+  // Platforms
+  for (const plat of platforms) {
+    const startCol = Math.floor(plat.x - scrollX) + playerCol;
+    const platRow = groundRow + plat.y;
+    for (let dc = 0; dc < plat.w; dc++) {
+      const c = startCol + dc;
+      if (platRow >= 0 && platRow < rows && c >= 0 && c < cols) {
+        grid[platRow][c] = 0.6;
+        colorGrid[platRow][c] = 'platform';
+      }
+    }
+  }
+
+  // Player (rotating square based on frame)
+  const pRow = groundRow - 1 + Math.floor(playerY);
+  const rotation = (frame * 0.08) % (Math.PI * 2);
+  const pSize = 2;
+
+  for (let dr = -pSize; dr <= pSize; dr++) {
+    for (let dc = -pSize; dc <= pSize; dc++) {
+      // Rotate point
+      const rx = dc * Math.cos(rotation) - dr * Math.sin(rotation);
+      const ry = dc * Math.sin(rotation) + dr * Math.cos(rotation);
+      if (Math.abs(rx) <= pSize && Math.abs(ry) <= pSize) {
+        const r = pRow + Math.round(ry);
+        const c = playerCol + Math.round(rx);
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+          const isBorder = Math.abs(dr) === pSize || Math.abs(dc) === pSize;
+          grid[r][c] = isBorder ? 1.0 : 0.7;
+          colorGrid[r][c] = 'player';
+        }
+      }
+    }
+  }
+
+  // Particles
+  for (const p of particles) {
+    const r = Math.floor(groundRow - 1 + p.y);
+    const c = Math.floor(playerCol + p.x - (scrollX - p.x));
+    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+      grid[r][c] = Math.max(grid[r][c], 0.5 * (p.life / 40));
+      colorGrid[r][c] = alive ? 'particle' : 'death';
+    }
+  }
+
+  // Render
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = `${FONT_SIZE}px "Courier New", monospace`;
+
+  const COLORS = {
+    null: '#1a1a2e',
+    bg: '#1a1a2e',
+    ground: '#3a3a5c',
+    obstacle: '#e06c75',
+    spike: '#e5c07b',
+    platform: '#61afef',
+    player: '#56b6c2',
+    particle: '#98c379',
+    death: '#e06c75',
+  };
+
+  for (let r = 0; r < rows; r++) {
+    // Batch same-color chars
+    let x = 0;
+    let currentColor = null;
+    let batch = '';
+
+    for (let c = 0; c < cols; c++) {
+      const brightness = grid[r][c];
+      const charIdx = Math.min(Math.floor(brightness * (CHARS.length - 1)), CHARS.length - 1);
+      const ch = CHARS[charIdx];
+      const color = COLORS[colorGrid[r][c]] || '#1a1a2e';
+
+      if (color !== currentColor) {
+        if (batch) {
+          ctx.fillStyle = currentColor;
+          ctx.fillText(batch, x, r * LINE_HEIGHT + FONT_SIZE);
+        }
+        currentColor = color;
+        x = c * CHAR_W;
+        batch = ch;
+      } else {
+        batch += ch;
+      }
+    }
+    if (batch) {
+      ctx.fillStyle = currentColor;
+      ctx.fillText(batch, x, r * LINE_HEIGHT + FONT_SIZE);
+    }
+  }
+
+  // HUD
+  ctx.fillStyle = '#56b6c2';
+  ctx.font = 'bold 20px monospace';
+  ctx.fillText(`${Math.floor(score)}%`, W - 80, 30);
+
+  if (!alive) {
+    ctx.fillStyle = '#e06c75';
+    ctx.font = 'bold 32px monospace';
+    const msg = 'CRASHED';
+    ctx.fillText(msg, W / 2 - 60, H / 2);
+    ctx.fillStyle = '#666';
+    ctx.font = '16px monospace';
+    ctx.fillText('click or R to restart', W / 2 - 90, H / 2 + 30);
+  } else {
+    ctx.fillStyle = '#333';
+    ctx.font = '12px monospace';
+    ctx.fillText('CLICK or SPACE to jump', 20, H - 15);
+  }
+}
+
+function update() {
+  if (!alive) return;
+
+  frame++;
+  scrollX += speed;
+  score += 0.05;
+
+  // Gravity
+  playerVel += 0.5;
+  playerY += playerVel;
+
+  // Ground collision
+  if (playerY >= 0) {
+    playerY = 0;
+    playerVel = 0;
+    grounded = true;
+  }
+
+  // Platform collision
+  const cols = Math.floor(canvas.width / CHAR_W);
+  const playerCol = Math.floor(cols * PLAYER_X);
+  const groundRow = Math.floor((canvas.height / LINE_HEIGHT) * GROUND_Y);
+
+  for (const plat of platforms) {
+    const platStart = plat.x - scrollX;
+    const platEnd = platStart + plat.w;
+    if (platStart <= 3 && platEnd >= -1) {
+      const platRowY = plat.y;
+      if (playerVel > 0 && playerY >= platRowY - 1 && playerY <= platRowY + 1) {
+        playerY = platRowY;
+        playerVel = 0;
+        grounded = true;
+      }
+    }
+  }
+
+  // Obstacle collision
+  for (const obs of obstacles) {
+    const obsStart = obs.x - scrollX;
+    if (obsStart >= -1 && obsStart <= 2) {
+      if (playerY > -(obs.h - 1)) {
+        die();
+      }
+    }
+  }
+
+  // Spike collision
+  for (const spike of spikes) {
+    const spikeStart = spike.x - scrollX;
+    if (spikeStart >= -1 && spikeStart <= 2) {
+      if (playerY > -(spike.h - 1)) {
+        die();
+      }
+    }
+  }
+
+  // Trail particles
+  if (frame % 3 === 0 && grounded) {
+    addParticles(0, playerY, 1);
+  }
+
+  // Update particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  // Level gen
+  spawnLevel();
+
+  // Cleanup far-away objects
+  const cutoff = scrollX - 30;
+  while (obstacles.length && obstacles[0].x < cutoff) obstacles.shift();
+  while (spikes.length && spikes[0].x < cutoff) spikes.shift();
+  while (platforms.length && platforms[0].x < cutoff) platforms.shift();
+
+  // Speed increase
+  if (frame % 300 === 0) speed = Math.min(7, speed + 0.2);
+}
+
+function die() {
+  alive = false;
+  addParticles(0, playerY, 30);
+}
+
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

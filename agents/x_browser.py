@@ -150,7 +150,7 @@ async def llm_decide(tweet_text: str, author: str, learnings: list[str]) -> dict
     if learnings:
         learnings_block = "\n\nLEARNED FROM PAST SESSIONS:\n" + "\n".join(f"- {l}" for l in learnings[-10:])
 
-    prompt = f"""You are a Twitter engagement strategist for @ItsRoboki (Jagrit), a developer who builds postgres extensions, Rust tools, and AI agents.
+    prompt = f"""You are a Twitter engagement strategist for @wyvernotwts, a developer who works on AI systems, Rust tools, typed SQL workflows, low-level software, and gamedev.
 
 GOAL: Build authentic relationships in tech Twitter by engaging meaningfully.
 {learnings_block}
@@ -167,7 +167,7 @@ SKIP - not relevant or not worth engaging with
 Rules for REPLY (the most valuable action — 75x engagement weight):
 - Only reply if you can add genuine value or a unique perspective
 - Sound like a real dev, not a bot — casual, lowercase, opinionated
-- Reference your own experience when possible (postgres, rust, AI agents)
+- Reference your own experience when possible (rust, systems, devtools, AI agents, gamedev)
 - Never be generic ("great post!", "so true!")
 - Never use hashtags or emojis in replies"""
 
@@ -282,6 +282,24 @@ async def human_type(element, text: str):
     for char in text:
         await element.send_keys(char)
         await asyncio.sleep(random.uniform(0.03, 0.12))
+
+
+async def send_page_shortcut(page, key: str) -> bool:
+    """Send a single-key X shortcut via the focused body element.
+
+    This is more reliable on X than brittle selector clicking for some actions
+    like bookmark/like/reply.
+    """
+    try:
+        body = await page.query_selector('body')
+        if not body:
+            return False
+        await body.focus()
+        await asyncio.sleep(random.uniform(0.2, 0.6))
+        await body.send_keys(key)
+        return True
+    except Exception:
+        return False
 
 
 # ── Core agent logic ──
@@ -626,18 +644,41 @@ async def launch_browser(headless=False):
     os.makedirs(profile_dir, exist_ok=True)
 
     if "--windows" in sys.argv:
-        print("  Connecting to Windows Chrome via CDP (localhost:9222)...")
+        print("  Connecting to Windows Chrome via CDP...")
         import urllib.request
+        import urllib.parse
+        import subprocess
+        candidate_urls = ["http://localhost:9222/json/version"]
         try:
-            resp = urllib.request.urlopen("http://localhost:9222/json/version")
-            data = json.loads(resp.read())
-            ws_url = data["webSocketDebuggerUrl"]
-            browser = await zd.start(browser_websocket_url=ws_url)
-            print(f"  Connected to {data.get('Browser', 'Chrome')}")
-            return browser
+            host_ip = subprocess.check_output(["sh", "-lc", "ip route | awk '/default/ {print $3}' | head -n1"], text=True).strip()
+            if host_ip:
+                candidate_urls.append(f"http://{host_ip}:9222/json/version")
+                candidate_urls.append(f"http://{host_ip}:9223/json/version")
         except Exception:
-            print("  ERROR: Launch Chrome first with: chrome.exe --remote-debugging-port=9222")
-            sys.exit(1)
+            host_ip = None
+        last_error = None
+        for version_url in candidate_urls:
+            try:
+                print(f"  Trying {version_url}")
+                resp = urllib.request.urlopen(version_url, timeout=5)
+                data = json.loads(resp.read())
+                # zendriver connects to an existing browser via host+port, not browser_websocket_url
+                parsed = urllib.parse.urlparse(version_url)
+                connect_host = parsed.hostname or "localhost"
+                connect_port = parsed.port or 9222
+                browser = await zd.start(host=connect_host, port=connect_port)
+                print(f"  Connected to {data.get('Browser', 'Chrome')} via {connect_host}:{connect_port}")
+                return browser
+            except Exception as e:
+                last_error = e
+                continue
+        print("  ERROR: Could not connect to Windows browser CDP on any known endpoint.")
+        if host_ip:
+            print(f"  Tried localhost:9222, {host_ip}:9222, and {host_ip}:9223")
+        else:
+            print("  Tried localhost:9222")
+        print(f"  Last error: {last_error}")
+        sys.exit(1)
 
     browser_options = [
         ("/usr/bin/opera", "Opera"),

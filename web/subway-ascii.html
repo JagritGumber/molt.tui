@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Subway Surfers — ASCII</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// Fullscreen
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ASCII chars sorted by brightness (dark to light)
+const CHARS = ' .:-=+*#%@';
+const FONT_SIZE = 14;
+const LINE_HEIGHT = FONT_SIZE + 2;
+
+// Player
+const player = {
+  lane: 1, // 0=left, 1=center, 2=right
+  targetLane: 1,
+  x: 0,
+  y: 0,
+  jumping: false,
+  jumpY: 0,
+  jumpVel: 0,
+};
+
+// Obstacles
+const obstacles = [];
+const coins = [];
+let score = 0;
+let speed = 4;
+let frame = 0;
+
+// Perspective params
+const VANISH_Y = 0.25; // vanishing point at 25% from top
+const LANES = 3;
+const LANE_WIDTH = 8; // chars
+
+function spawnObstacle() {
+  obstacles.push({
+    lane: Math.floor(Math.random() * 3),
+    z: 1.0, // 1 = far, 0 = close
+    type: Math.random() < 0.5 ? 'box' : 'barrier',
+  });
+}
+
+function spawnCoin() {
+  coins.push({
+    lane: Math.floor(Math.random() * 3),
+    z: 1.0,
+  });
+}
+
+// Input
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' && player.targetLane > 0) player.targetLane--;
+  if (e.key === 'ArrowRight' && player.targetLane < 2) player.targetLane++;
+  if ((e.key === 'ArrowUp' || e.key === ' ') && !player.jumping) {
+    player.jumping = true;
+    player.jumpVel = -12;
+  }
+});
+
+// Touch/swipe for mobile
+let touchStartX = 0;
+canvas.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+canvas.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (dx > 50 && player.targetLane < 2) player.targetLane++;
+  else if (dx < -50 && player.targetLane > 0) player.targetLane--;
+  else if (!player.jumping) { player.jumping = true; player.jumpVel = -12; }
+});
+
+function projectZ(z) {
+  // z: 1=far, 0=near
+  const h = canvas.height;
+  const vanishY = h * VANISH_Y;
+  const groundY = h * 0.85;
+  const y = vanishY + (groundY - vanishY) * (1 - z);
+  const scale = 0.1 + 0.9 * (1 - z);
+  return { y, scale };
+}
+
+function render() {
+  const W = canvas.width;
+  const H = canvas.height;
+  const cols = Math.floor(W / (FONT_SIZE * 0.6));
+  const rows = Math.floor(H / LINE_HEIGHT);
+
+  // Build a brightness grid
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    grid[r] = new Float32Array(cols);
+  }
+
+  const centerCol = cols / 2;
+
+  // Draw track lines (perspective)
+  for (let z = 0; z < 1; z += 0.01) {
+    const { y, scale } = projectZ(z);
+    const row = Math.floor(y / LINE_HEIGHT);
+    if (row < 0 || row >= rows) continue;
+    const trackW = LANE_WIDTH * LANES * scale;
+
+    // Lane dividers
+    for (let l = 0; l <= LANES; l++) {
+      const laneX = centerCol - trackW / 2 + l * (trackW / LANES);
+      const col = Math.floor(laneX);
+      if (col >= 0 && col < cols) {
+        grid[row][col] = Math.max(grid[row][col], 0.15 + z * 0.1);
+      }
+    }
+
+    // Ground texture
+    if (Math.floor(z * 40) % 2 === 0) {
+      for (let c = Math.floor(centerCol - trackW / 2); c < centerCol + trackW / 2; c++) {
+        if (c >= 0 && c < cols) {
+          grid[row][c] = Math.max(grid[row][c], 0.05);
+        }
+      }
+    }
+  }
+
+  // Draw obstacles as bright blocks
+  for (const obs of obstacles) {
+    const { y, scale } = projectZ(obs.z);
+    const row = Math.floor(y / LINE_HEIGHT);
+    const trackW = LANE_WIDTH * LANES * scale;
+    const laneW = trackW / LANES;
+    const laneCenter = centerCol - trackW / 2 + obs.lane * laneW + laneW / 2;
+    const obsW = Math.max(2, Math.floor(laneW * 0.7));
+    const obsH = Math.max(1, Math.floor(3 * scale));
+
+    const brightness = obs.type === 'box' ? 0.9 : 0.7;
+
+    for (let dr = -obsH; dr <= 0; dr++) {
+      for (let dc = -obsW / 2; dc < obsW / 2; dc++) {
+        const r = row + dr;
+        const c = Math.floor(laneCenter + dc);
+        if (r >= 0 && r < rows && c >= 0 && c < cols) {
+          grid[r][c] = Math.max(grid[r][c], brightness);
+        }
+      }
+    }
+  }
+
+  // Draw coins as small bright dots
+  for (const coin of coins) {
+    const { y, scale } = projectZ(coin.z);
+    const row = Math.floor(y / LINE_HEIGHT);
+    const trackW = LANE_WIDTH * LANES * scale;
+    const laneW = trackW / LANES;
+    const laneCenter = centerCol - trackW / 2 + coin.lane * laneW + laneW / 2;
+    const r2 = Math.max(1, Math.floor(scale * 1.5));
+
+    for (let dr = -r2; dr <= r2; dr++) {
+      for (let dc = -r2; dc <= r2; dc++) {
+        if (dr * dr + dc * dc <= r2 * r2) {
+          const r = row + dr - Math.floor(2 * scale);
+          const c = Math.floor(laneCenter + dc);
+          if (r >= 0 && r < rows && c >= 0 && c < cols) {
+            grid[r][c] = Math.max(grid[r][c], 0.6 + Math.sin(frame * 0.1) * 0.2);
+          }
+        }
+      }
+    }
+  }
+
+  // Draw player
+  const playerProj = projectZ(0.05);
+  const trackW = LANE_WIDTH * LANES * playerProj.scale;
+  const laneW = trackW / LANES;
+
+  // Smooth lane transition
+  player.x += (player.targetLane - player.lane) * 0.15;
+  player.lane += (player.targetLane - player.lane) * 0.15;
+
+  const playerCol = Math.floor(centerCol - trackW / 2 + player.lane * laneW + laneW / 2);
+  let playerRow = Math.floor(playerProj.y / LINE_HEIGHT);
+
+  // Jump physics
+  if (player.jumping) {
+    player.jumpVel += 0.6;
+    player.jumpY += player.jumpVel;
+    if (player.jumpY >= 0) {
+      player.jumpY = 0;
+      player.jumping = false;
+    }
+  }
+  playerRow += Math.floor(player.jumpY / LINE_HEIGHT);
+
+  // Player shape (stick figure-ish)
+  const pShape = [
+    [0, -3, 1.0], // head
+    [-1, -2, 0.7], [0, -2, 0.8], [1, -2, 0.7], // shoulders
+    [0, -1, 0.9], // body
+    [-1, 0, 0.6], [0, 0, 0.8], [1, 0, 0.6], // legs
+  ];
+  for (const [dc, dr, b] of pShape) {
+    const r = playerRow + dr;
+    const c = playerCol + dc;
+    if (r >= 0 && r < rows && c >= 0 && c < cols) {
+      grid[r][c] = Math.max(grid[r][c], b);
+    }
+  }
+
+  // Render ASCII
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.font = `${FONT_SIZE}px "Courier New", monospace`;
+
+  for (let r = 0; r < rows; r++) {
+    let line = '';
+    for (let c = 0; c < cols; c++) {
+      const brightness = grid[r][c];
+      const charIdx = Math.floor(brightness * (CHARS.length - 1));
+      line += CHARS[Math.min(charIdx, CHARS.length - 1)];
+    }
+
+    // Color based on row position (perspective depth)
+    const depth = r / rows;
+    const green = Math.floor(80 + depth * 120);
+    const blue = Math.floor(60 + depth * 40);
+    ctx.fillStyle = `rgb(${Math.floor(40 + depth * 30)}, ${green}, ${blue})`;
+    ctx.fillText(line, 0, r * LINE_HEIGHT + FONT_SIZE);
+  }
+
+  // Score overlay
+  ctx.fillStyle = '#56b6c2';
+  ctx.font = 'bold 24px monospace';
+  ctx.fillText(`SCORE: ${score}`, 20, 40);
+  ctx.fillStyle = '#666';
+  ctx.font = '14px monospace';
+  ctx.fillText('← → to move, SPACE to jump', 20, H - 20);
+}
+
+function update() {
+  frame++;
+
+  // Move obstacles toward camera
+  for (const obs of obstacles) {
+    obs.z -= 0.008 * speed;
+  }
+  for (const coin of coins) {
+    coin.z -= 0.008 * speed;
+  }
+
+  // Collision check
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    if (obs.z < 0.08 && obs.z > 0 && Math.abs(obs.lane - Math.round(player.lane)) < 0.5) {
+      if (!player.jumping || player.jumpY > -3) {
+        // Hit! Flash and reset
+        score = Math.max(0, score - 10);
+        obstacles.splice(i, 1);
+      }
+    }
+    if (obs.z < -0.1) obstacles.splice(i, 1);
+  }
+
+  // Coin collection
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i];
+    if (coin.z < 0.1 && coin.z > 0 && Math.abs(coin.lane - Math.round(player.lane)) < 0.5) {
+      score += 5;
+      coins.splice(i, 1);
+    }
+    if (coin.z < -0.1) coins.splice(i, 1);
+  }
+
+  // Spawn
+  if (frame % 60 === 0) spawnObstacle();
+  if (frame % 40 === 0) spawnCoin();
+
+  // Speed up slowly
+  if (frame % 500 === 0) speed = Math.min(8, speed + 0.3);
+  score++;
+}
+
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// Start
+spawnObstacle();
+spawnCoin();
+loop();
+</script>
+</body>
+</html>

@@ -21,5 +21,9 @@
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^0.0.3",
+    "facehash": "^0.1.0"
   }
 }

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ElysiaJS — Powered by Pretext</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    html, body {
+      background: radial-gradient(ellipse at 50% 40%, #0c0c18 0%, #08080c 100%);
+      color: #e8e4dc; height: 100vh; overflow: hidden;
+    }
+    body { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif; }
+
+    #stage { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+
+    .line {
+      position: absolute; white-space: pre; z-index: 1; color: #e8e4dc;
+      user-select: text; -webkit-user-select: text;
+    }
+
+    .headline-line {
+      position: absolute; white-space: pre;
+      font-weight: 700; color: #fff; letter-spacing: -0.5px; z-index: 2;
+      user-select: text; -webkit-user-select: text;
+    }
+
+    .drop-cap {
+      position: absolute; pointer-events: none; z-index: 2;
+      font-weight: 700; color: #64b4ff;
+    }
+
+    .orb {
+      position: absolute; border-radius: 50%; pointer-events: none; z-index: 10;
+      will-change: transform; display: flex; align-items: center; justify-content: center;
+    }
+    .pullquote-box {
+      position: absolute; pointer-events: none; z-index: 3;
+      border-left: 3px solid #5060aa; padding-left: 14px;
+    }
+    .pullquote-line {
+      position: absolute; white-space: pre;
+      font-style: italic; color: #8090cc;
+      user-select: text; -webkit-user-select: text;
+    }
+
+    .hint {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      font: 400 13px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: rgba(255,255,255,0.22); z-index: 100;
+      background: rgba(0,0,0,0.45); padding: 8px 18px; border-radius: 999px;
+      pointer-events: none; white-space: nowrap;
+    }
+    .credit {
+      position: fixed; right: 16px; bottom: 12px; z-index: 100;
+      font: 400 13px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: rgba(100,180,255,0.5);
+      text-decoration: none;
+    }
+    .credit:hover { color: rgba(100,180,255,0.8); }
+
+    .tag {
+      position: fixed; left: 16px; bottom: 12px; z-index: 100;
+      font: 700 14px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: rgba(100,180,255,0.6);
+      text-decoration: none;
+    }
+    .tag:hover { color: rgba(100,180,255,0.9); }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div class="hint">Drag the logos &middot; Click to pause &middot; Text wraps in real-time via @chenglou/pretext</div>
+  <a class="tag" href="https://elysiajs.com" target="_blank" rel="noreferrer">@elysiajs</a>
+  <a class="credit" href="https://x.com/mobtwts" target="_blank" rel="noreferrer">@mobtwts</a>
+
+  <script type="module" src="./elysia-demo.js"></script>
+</body>
+</html>
